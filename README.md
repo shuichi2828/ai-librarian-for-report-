@@ -2,6 +2,8 @@
 
 A bilingual AI librarian for university report planning. Students enter a broad idea, answer librarian-style follow-up questions, choose from multiple report plans, and receive verified paper candidates with summaries and APA 7 citations.
 
+The app includes open guest login. Anyone can enter a name or email and start using it. This is not identity verification; it only separates saved plan history in the browser.
+
 ## Run
 
 ```powershell

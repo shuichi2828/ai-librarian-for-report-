@@ -45,6 +45,55 @@ button {
   min-height: 100vh;
 }
 
+.loginShell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+}
+
+.loginPanel {
+  width: min(100%, 440px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 28px;
+}
+
+.loginPanel h1 {
+  margin: 8px 0 10px;
+  font-size: 28px;
+}
+
+.loginText {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.loginForm {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.loginForm label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.loginForm input {
+  width: 100%;
+  min-height: 50px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fdfaf2;
+  color: var(--ink);
+  outline-color: var(--teal);
+  padding: 0 14px;
+}
+
 .historyPane {
   border-right: 1px solid var(--line);
   background: #f0eadf;
@@ -154,6 +203,30 @@ h1 {
 .emptyText {
   color: var(--muted);
   line-height: 1.5;
+}
+
+.userBox {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 9px;
+  margin-bottom: 18px;
+}
+
+.userBox span {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userBox .iconButton {
+  width: 32px;
+  height: 32px;
 }
 
 .workspace {

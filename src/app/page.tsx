@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Clipboard, History, Languages, Library, Loader2, MessageSquareText, Search, Trash2, X } from "lucide-react";
+import { BookOpen, Clipboard, History, Languages, Library, Loader2, LogOut, MessageSquareText, Search, Trash2, UserRound, X } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { InterviewAnswer, LibrarianQuestion, OutputLanguage, ReferenceItem, ReferenceSearchResult, ThemeCandidate } from "@/lib/types";
 
@@ -27,6 +27,12 @@ type HistoryEntry = {
 };
 
 const HISTORY_KEY = "ai-librarian-history-v2";
+const USER_KEY = "ai-librarian-user-v1";
+
+type GuestUser = {
+  id: string;
+  name: string;
+};
 
 function languageLabel(language: OutputLanguage) {
   if (language === "ja") return "Japanese";
@@ -40,6 +46,8 @@ function copyText(reference: ReferenceItem) {
 }
 
 export default function Home() {
+  const [user, setUser] = useState<GuestUser | null>(null);
+  const [loginName, setLoginName] = useState("");
   const [topic, setTopic] = useState("Generative AI and university education");
   const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>("auto");
   const [questions, setQuestions] = useState<LibrarianQuestion[]>([]);
@@ -57,17 +65,58 @@ export default function Home() {
 
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedPlanId), [plans, selectedPlanId]);
   const busy = status !== "idle";
+  const userHistoryKey = user ? `${HISTORY_KEY}-${user.id}` : HISTORY_KEY;
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(HISTORY_KEY);
-    if (saved) {
-      setHistory(JSON.parse(saved) as HistoryEntry[]);
+    const savedUser = window.localStorage.getItem(USER_KEY);
+    if (savedUser) {
+      const parsedUser = JSON.parse(savedUser) as GuestUser;
+      setUser(parsedUser);
+      setLoginName(parsedUser.name);
     }
   }, []);
 
+  useEffect(() => {
+    if (!user) {
+      setHistory([]);
+      return;
+    }
+
+    const saved = window.localStorage.getItem(`${HISTORY_KEY}-${user.id}`);
+    if (saved) {
+      setHistory(JSON.parse(saved) as HistoryEntry[]);
+    } else {
+      setHistory([]);
+    }
+  }, [user]);
+
   function persistHistory(nextHistory: HistoryEntry[]) {
     setHistory(nextHistory);
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHistory));
+    window.localStorage.setItem(userHistoryKey, JSON.stringify(nextHistory));
+  }
+
+  function login(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = loginName.trim();
+
+    if (!name) return;
+
+    const nextUser = {
+      id: name.toLowerCase().replace(/[^\p{L}\p{N}@._-]+/gu, "-").slice(0, 80),
+      name
+    };
+    setUser(nextUser);
+    window.localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+  }
+
+  function logout() {
+    setUser(null);
+    setHistory([]);
+    setQuestions([]);
+    setPlans([]);
+    setReferences([]);
+    setError(undefined);
+    window.localStorage.removeItem(USER_KEY);
   }
 
   function currentAnswers(): InterviewAnswer[] {
@@ -204,6 +253,29 @@ export default function Home() {
     setError(undefined);
   }
 
+  if (!user) {
+    return (
+      <main className="loginShell">
+        <section className="loginPanel">
+          <div className="brandMark">
+            <Library size={22} />
+          </div>
+          <p className="eyebrow">AI Librarian</p>
+          <h1>Report Builder</h1>
+          <p className="loginText">Enter your name or email to start. Anyone can use this app; this sign-in only keeps your saved plans separate on this device.</p>
+          <form className="loginForm" onSubmit={login}>
+            <label htmlFor="loginName">Name or email</label>
+            <input id="loginName" value={loginName} onChange={(event) => setLoginName(event.target.value)} placeholder="student@example.com" autoComplete="email" />
+            <button className="primaryButton" type="submit">
+              <UserRound size={18} />
+              Log in
+            </button>
+          </form>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="shell">
       <aside className="historyPane" aria-label="Search history">
@@ -215,6 +287,14 @@ export default function Home() {
             <p className="eyebrow">AI Librarian</p>
             <h1>Report Builder</h1>
           </div>
+        </div>
+
+        <div className="userBox">
+          <UserRound size={17} />
+          <span>{user.name}</span>
+          <button className="iconButton subtle" type="button" onClick={logout} aria-label="Log out" title="Log out">
+            <LogOut size={16} />
+          </button>
         </div>
 
         <div className="historyTitle">
