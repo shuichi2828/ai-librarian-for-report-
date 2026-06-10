@@ -15,6 +15,20 @@ export type InterviewAnswer = {
   answer: string;
 };
 
+export type PdfTheme = {
+  id: string;
+  title: string;
+  summary: string;
+  keywords: string[];
+  evidence: string;
+};
+
+export type PdfInsightResult = {
+  documentTitle: string;
+  summary: string;
+  themes: PdfTheme[];
+};
+
 export type ThemeCandidate = {
   id: string;
   title: string;
@@ -42,6 +56,8 @@ export type ReferenceItem = {
   apa7: string;
   sourceProvider: string;
   citationCount?: number;
+  relevanceScore: number;
+  relevanceReason: string;
   verifiedMetadata: true;
 };
 
@@ -51,6 +67,22 @@ export type ReferenceSearchResult = {
   alternativeKeywords: string[];
   refinementSuggestions: string[];
   totalCandidatesReviewed: number;
+};
+
+export type ReportSection = {
+  title: string;
+  purpose: string;
+  keyPoints: string[];
+  paperIds: string[];
+};
+
+export type ReportOutline = {
+  title: string;
+  thesis: string;
+  sections: ReportSection[];
+  selectedPdfThemes: string[];
+  selectedPaperIds: string[];
+  nextSteps: string[];
 };
 
 export type ProviderPaper = {

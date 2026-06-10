@@ -1,8 +1,34 @@
 "use client";
 
-import { BookOpen, Clipboard, History, Languages, Library, Loader2, LogOut, MessageSquareText, Search, Trash2, UserRound, X } from "lucide-react";
+import {
+  BookOpen,
+  CheckCircle2,
+  Clipboard,
+  FileText,
+  History,
+  Languages,
+  Library,
+  ListChecks,
+  Loader2,
+  LogOut,
+  MessageSquareText,
+  RefreshCcw,
+  Search,
+  Trash2,
+  UserRound,
+  X
+} from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { InterviewAnswer, LibrarianQuestion, OutputLanguage, ReferenceItem, ReferenceSearchResult, ThemeCandidate } from "@/lib/types";
+import type {
+  InterviewAnswer,
+  LibrarianQuestion,
+  OutputLanguage,
+  PdfInsightResult,
+  ReferenceItem,
+  ReferenceSearchResult,
+  ReportOutline,
+  ThemeCandidate
+} from "@/lib/types";
 
 type QuestionsResponse = {
   questions: LibrarianQuestion[];
@@ -13,6 +39,17 @@ type QuestionsResponse = {
 type PlansResponse = {
   candidates: ThemeCandidate[];
   outputLanguage: "ja" | "en";
+  usedFallback: boolean;
+};
+
+type PdfResponse = PdfInsightResult & {
+  textLength: number;
+  extractionMode: "text" | "openai-ocr";
+  usedFallback: boolean;
+};
+
+type OutlineResponse = {
+  outline: ReportOutline;
   usedFallback: boolean;
 };
 
@@ -52,15 +89,22 @@ export default function Home() {
   const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>("auto");
   const [questions, setQuestions] = useState<LibrarianQuestion[]>([]);
   const [answerMap, setAnswerMap] = useState<Record<string, string>>({});
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [forcePdfOcr, setForcePdfOcr] = useState(false);
+  const [pdfMode, setPdfMode] = useState<"text" | "openai-ocr">();
+  const [pdfInsight, setPdfInsight] = useState<PdfInsightResult | null>(null);
+  const [selectedPdfThemeIds, setSelectedPdfThemeIds] = useState<string[]>([]);
   const [plans, setPlans] = useState<ThemeCandidate[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>();
   const [references, setReferences] = useState<ReferenceItem[]>([]);
+  const [selectedReferenceIds, setSelectedReferenceIds] = useState<string[]>([]);
+  const [reportOutline, setReportOutline] = useState<ReportOutline | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [alternatives, setAlternatives] = useState<string[]>([]);
   const [refinements, setRefinements] = useState<string[]>([]);
   const [totalReviewed, setTotalReviewed] = useState<number>();
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [status, setStatus] = useState<"idle" | "questions" | "plans" | "references">("idle");
+  const [status, setStatus] = useState<"idle" | "questions" | "pdf" | "plans" | "references" | "outline">("idle");
   const [error, setError] = useState<string>();
 
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedPlanId), [plans, selectedPlanId]);
@@ -120,13 +164,27 @@ export default function Home() {
   }
 
   function currentAnswers(): InterviewAnswer[] {
-    return questions
+    const answers = questions
       .map((question) => ({
         questionId: question.id,
         question: question.label,
-        answer: answerMap[question.id]?.trim() ?? ""
+        answer:
+          question.type === "choice" && /^(Other|その他)$/i.test(answerMap[question.id] ?? "")
+            ? `${answerMap[question.id]}: ${answerMap[`${question.id}__other`]?.trim() ?? ""}`
+            : answerMap[question.id]?.trim() ?? ""
       }))
       .filter((item) => item.answer.length > 0);
+
+    const selectedPdfThemes = pdfInsight?.themes.filter((theme) => selectedPdfThemeIds.includes(theme.id)) ?? [];
+    if (selectedPdfThemes.length > 0) {
+      answers.push({
+        questionId: "selected-pdf-themes",
+        question: "Selected PDF themes",
+        answer: selectedPdfThemes.map((theme) => `${theme.title}: ${theme.summary}`).join(" / ")
+      });
+    }
+
+    return answers;
   }
 
   async function getQuestions(event: FormEvent<HTMLFormElement>) {
@@ -138,6 +196,8 @@ export default function Home() {
     setQuestions([]);
     setPlans([]);
     setReferences([]);
+    setSelectedReferenceIds([]);
+    setReportOutline(null);
     setWarnings([]);
     setAnswerMap({});
 
@@ -169,17 +229,32 @@ export default function Home() {
       return;
     }
 
+    const missingOther = questions.some(
+      (question) => question.type === "choice" && /^(Other|その他)$/i.test(answerMap[question.id] ?? "") && !answerMap[`${question.id}__other`]?.trim()
+    );
+    if (missingOther) {
+      setError("Please write your own answer for Other.");
+      return;
+    }
+
     setStatus("plans");
     setError(undefined);
     setPlans([]);
     setReferences([]);
+    setSelectedReferenceIds([]);
+    setReportOutline(null);
     setWarnings([]);
 
     try {
       const response = await fetch("/api/theme-candidates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, outputLanguage, answers: currentAnswers() })
+        body: JSON.stringify({
+          topic,
+          outputLanguage,
+          answers: currentAnswers(),
+          pdfThemes: pdfInsight?.themes.filter((theme) => selectedPdfThemeIds.includes(theme.id)) ?? []
+        })
       });
 
       if (!response.ok) throw new Error("plans");
@@ -199,6 +274,8 @@ export default function Home() {
     setError(undefined);
     setSelectedPlanId(plan.id);
     setReferences([]);
+    setSelectedReferenceIds([]);
+    setReportOutline(null);
     setWarnings([]);
     setAlternatives([]);
     setRefinements([]);
@@ -215,6 +292,7 @@ export default function Home() {
 
       const result = (await response.json()) as ReferenceSearchResult;
       setReferences(result.references);
+      setSelectedReferenceIds(result.references.slice(0, 4).map((reference) => reference.id));
       setWarnings(result.warnings);
       setAlternatives(result.alternativeKeywords);
       setRefinements(result.refinementSuggestions);
@@ -234,6 +312,86 @@ export default function Home() {
       }
     } catch {
       setError("Could not fetch references.");
+    } finally {
+      setStatus("idle");
+    }
+  }
+
+  async function readPdf(avoidThemes: string[] = []) {
+    if (!pdfFile) {
+      setError("Please choose a PDF first.");
+      return;
+    }
+
+    setStatus("pdf");
+    setError(undefined);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", pdfFile);
+      formData.append("outputLanguage", outputLanguage);
+      formData.append("avoidThemes", JSON.stringify(avoidThemes));
+      formData.append("forceOcr", String(forcePdfOcr));
+
+      const response = await fetch("/api/pdf-insights", {
+        method: "POST",
+        body: formData
+      });
+
+      if (!response.ok) throw new Error("pdf");
+
+      const result = (await response.json()) as PdfResponse;
+      setPdfInsight(result);
+      setPdfMode(result.extractionMode);
+      setSelectedPdfThemeIds(result.themes.slice(0, 2).map((theme) => theme.id));
+    } catch {
+      setError("Could not read this PDF. Please try a smaller text-based PDF.");
+    } finally {
+      setStatus("idle");
+    }
+  }
+
+  function togglePdfTheme(themeId: string) {
+    setSelectedPdfThemeIds((current) => (current.includes(themeId) ? current.filter((id) => id !== themeId) : [...current, themeId]));
+  }
+
+  function toggleReference(referenceId: string) {
+    setSelectedReferenceIds((current) => (current.includes(referenceId) ? current.filter((id) => id !== referenceId) : [...current, referenceId]));
+  }
+
+  async function createOutline() {
+    if (!selectedPlan) {
+      setError("Please choose a report plan first.");
+      return;
+    }
+
+    const selectedReferences = references.filter((reference) => selectedReferenceIds.includes(reference.id));
+    if (selectedReferences.length === 0) {
+      setError("Please select at least one paper to include.");
+      return;
+    }
+
+    setStatus("outline");
+    setError(undefined);
+
+    try {
+      const response = await fetch("/api/report-outline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan: selectedPlan,
+          references: selectedReferences,
+          pdfThemes: pdfInsight?.themes.filter((theme) => selectedPdfThemeIds.includes(theme.id)) ?? [],
+          outputLanguage: outputLanguage === "ja" ? "ja" : "en"
+        })
+      });
+
+      if (!response.ok) throw new Error("outline");
+
+      const result = (await response.json()) as OutlineResponse;
+      setReportOutline(result.outline);
+    } catch {
+      setError("Could not create the report outline.");
     } finally {
       setStatus("idle");
     }
@@ -378,13 +536,23 @@ export default function Home() {
                     <span>{question.label}</span>
                     <small>{question.helpText}</small>
                     {question.type === "choice" ? (
-                      <select value={answerMap[question.id] ?? ""} onChange={(event) => setAnswerMap({ ...answerMap, [question.id]: event.target.value })}>
-                        {(question.options ?? []).map((option) => (
-                          <option value={option} key={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
+                      <>
+                        <select value={answerMap[question.id] ?? ""} onChange={(event) => setAnswerMap({ ...answerMap, [question.id]: event.target.value })}>
+                          {(question.options ?? []).map((option) => (
+                            <option value={option} key={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                        {/^(Other|その他)$/i.test(answerMap[question.id] ?? "") && (
+                          <textarea
+                            value={answerMap[`${question.id}__other`] ?? ""}
+                            onChange={(event) => setAnswerMap({ ...answerMap, [`${question.id}__other`]: event.target.value })}
+                            placeholder="Write your own angle"
+                            rows={2}
+                          />
+                        )}
+                      </>
                     ) : (
                       <textarea
                         value={answerMap[question.id] ?? ""}
@@ -436,6 +604,56 @@ export default function Home() {
           </section>
         </div>
 
+        <section className="pdfPane" aria-label="PDF insights">
+          <div className="sectionHeader">
+            <FileText size={18} />
+            <h2>Optional PDF reading</h2>
+          </div>
+          <div className="pdfControls">
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={(event) => {
+                setPdfFile(event.target.files?.[0] ?? null);
+                setPdfInsight(null);
+                setPdfMode(undefined);
+                setSelectedPdfThemeIds([]);
+              }}
+            />
+            <label className="inlineToggle">
+              <input type="checkbox" checked={forcePdfOcr} onChange={(event) => setForcePdfOcr(event.target.checked)} />
+              Use OpenAI OCR for scanned PDFs
+            </label>
+            <button className="secondaryButton compact" type="button" onClick={() => readPdf()} disabled={busy || !pdfFile}>
+              {status === "pdf" ? <Loader2 size={17} className="spin" /> : <FileText size={17} />}
+              Read PDF
+            </button>
+            {pdfInsight && (
+              <button className="secondaryButton compact" type="button" onClick={() => readPdf(pdfInsight.themes.map((theme) => theme.title))} disabled={busy}>
+                <RefreshCcw size={17} />
+                Extract again
+              </button>
+            )}
+          </div>
+          {pdfInsight && (
+            <div className="pdfResult">
+              <h3>{pdfInsight.documentTitle}</h3>
+              {pdfMode && <small className="modeBadge">Read mode: {pdfMode === "openai-ocr" ? "OpenAI OCR" : "embedded text"}</small>}
+              <p>{pdfInsight.summary}</p>
+              <div className="themeGrid">
+                {pdfInsight.themes.map((theme) => (
+                  <label className={selectedPdfThemeIds.includes(theme.id) ? "selectCard selected" : "selectCard"} key={theme.id}>
+                    <input type="checkbox" checked={selectedPdfThemeIds.includes(theme.id)} onChange={() => togglePdfTheme(theme.id)} />
+                    <span>{theme.title}</span>
+                    <small>{theme.summary}</small>
+                    <em>{theme.keywords.join(", ")}</em>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
         <section className="referencesPane" aria-label="References">
           <div className="sectionHeader">
             <Library size={18} />
@@ -469,9 +687,17 @@ export default function Home() {
                 <article className="referenceCard" key={reference.id}>
                   <div className="referenceTopline">
                     <span>{reference.sourceProvider}</span>
+                    <span>{reference.relevanceScore}% relevant</span>
+                  </div>
+                  <div className="referenceMeta">
                     <span>{reference.year ?? "n.d."}</span>
+                    <span>{reference.relevanceReason}</span>
                   </div>
                   <h3>{reference.title}</h3>
+                  <label className="paperSelect">
+                    <input type="checkbox" checked={selectedReferenceIds.includes(reference.id)} onChange={() => toggleReference(reference.id)} />
+                    Include this paper in the outline
+                  </label>
                   <p className="authors">{reference.authors.join(", ")}</p>
                   <p>{reference.abstractOrMetadataSummary}</p>
                   <p className="whyUseful">{reference.whyUseful}</p>
@@ -489,6 +715,43 @@ export default function Home() {
             )}
           </div>
         </section>
+
+        {references.length > 0 && (
+          <section className="outlinePane" aria-label="Report outline">
+            <div className="sectionHeader">
+              <ListChecks size={18} />
+              <h2>4. Build outline with selected papers</h2>
+              <span className="selectedChip">{selectedReferenceIds.length} papers selected</span>
+            </div>
+            <button className="primaryButton" type="button" onClick={createOutline} disabled={busy || selectedReferenceIds.length === 0}>
+              {status === "outline" ? <Loader2 size={18} className="spin" /> : <CheckCircle2 size={18} />}
+              Create report outline
+            </button>
+            {reportOutline && (
+              <article className="outlineResult">
+                <h3>{reportOutline.title}</h3>
+                <p className="whyUseful">{reportOutline.thesis}</p>
+                {reportOutline.sections.map((section) => (
+                  <section className="outlineSection" key={section.title}>
+                    <h4>{section.title}</h4>
+                    <p>{section.purpose}</p>
+                    <ul>
+                      {section.keyPoints.map((point) => (
+                        <li key={point}>{point}</li>
+                      ))}
+                    </ul>
+                    {section.paperIds.length > 0 && <small>Papers: {section.paperIds.join(", ")}</small>}
+                  </section>
+                ))}
+                <div className="notice">
+                  {reportOutline.nextSteps.map((step) => (
+                    <p key={step}>{step}</p>
+                  ))}
+                </div>
+              </article>
+            )}
+          </section>
+        )}
       </section>
     </main>
   );

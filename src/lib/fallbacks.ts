@@ -1,4 +1,4 @@
-import type { LibrarianQuestion, ReferenceItem, ThemeCandidate, InterviewAnswer } from "./types";
+import type { InterviewAnswer, LibrarianQuestion, PdfInsightResult, PdfTheme, ReferenceItem, ReportOutline, ThemeCandidate } from "./types";
 
 export function fallbackLibrarianQuestions(topic: string, outputLanguage: "ja" | "en"): LibrarianQuestion[] {
   const ja = outputLanguage === "ja";
@@ -10,8 +10,8 @@ export function fallbackLibrarianQuestions(topic: string, outputLanguage: "ja" |
       label: ja ? "レポートで一番重視したいことは何ですか？" : "What should this report prioritize?",
       helpText: ja ? "論文探しの軸を決めます。" : "This sets the search direction.",
       options: ja
-        ? ["現状整理", "賛否比較", "原因分析", "解決策・提案", "事例比較"]
-        : ["Background overview", "Compare arguments", "Causal analysis", "Solutions", "Case comparison"],
+        ? ["現状整理", "賛否比較", "原因分析", "解決策・提案", "事例比較", "その他"]
+        : ["Background overview", "Compare arguments", "Causal analysis", "Solutions", "Case comparison", "Other"],
       required: true
     },
     {
@@ -49,10 +49,10 @@ export function fallbackLibrarianQuestions(topic: string, outputLanguage: "ja" |
   ];
 }
 
-export function fallbackThemeCandidates(topic: string, outputLanguage: "ja" | "en", answers: InterviewAnswer[] = []): ThemeCandidate[] {
+export function fallbackThemeCandidates(topic: string, outputLanguage: "ja" | "en", answers: InterviewAnswer[] = [], pdfThemes: PdfTheme[] = []): ThemeCandidate[] {
   const ja = outputLanguage === "ja";
   const answerText = answers.map((item) => `${item.question}: ${item.answer}`).join(" / ");
-  const related = answers.find((answer) => answer.questionId === "related-topic-detail")?.answer || topic;
+  const related = answers.find((answer) => answer.questionId === "related-topic-detail")?.answer || pdfThemes[0]?.title || topic;
   const jaKeywords = [topic, related, "大学", "学生", "研究"].filter(Boolean);
   const enKeywords = [topic, related, "university", "students", "research"].filter(Boolean);
 
@@ -103,8 +103,88 @@ export function fallbackThemeCandidates(topic: string, outputLanguage: "ja" | "e
     }
   ].map((plan) => ({
     ...plan,
-    reason: answerText ? `${plan.reason} ${ja ? "回答内容" : "Answers"}: ${answerText}` : plan.reason
+    reason: [plan.reason, answerText ? `${ja ? "回答内容" : "Answers"}: ${answerText}` : "", pdfThemes.length ? `${ja ? "PDF論点" : "PDF themes"}: ${pdfThemes.map((theme) => theme.title).join(", ")}` : ""]
+      .filter(Boolean)
+      .join(" ")
   }));
+}
+
+export function fallbackPdfInsights(pdfText: string, outputLanguage: "ja" | "en"): PdfInsightResult {
+  const ja = outputLanguage === "ja";
+  const words = pdfText
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]+/gu, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 4);
+  const topWords = [...new Set(words)].slice(0, 18);
+  const makeTheme = (index: number, title: string): PdfTheme => ({
+    id: `pdf-theme-${index + 1}`,
+    title,
+    summary: ja
+      ? "PDF本文から抽出した重要そうな論点です。OpenAI APIキーを設定すると、より自然な要約になります。"
+      : "A potentially important theme extracted from the PDF text. Set an OpenAI API key for a richer summary.",
+    keywords: topWords.slice(index * 3, index * 3 + 5),
+    evidence: pdfText.slice(index * 220, index * 220 + 220).replace(/\s+/g, " ").trim()
+  });
+
+  return {
+    documentTitle: ja ? "アップロードされたPDF" : "Uploaded PDF",
+    summary: ja
+      ? `PDFから約${pdfText.length.toLocaleString()}文字を読み取りました。重要テーマ候補を選んでレポートプランに組み込めます。`
+      : `Read about ${pdfText.length.toLocaleString()} characters from the PDF. Select themes to include them in the report plan.`,
+    themes: [
+      makeTheme(0, ja ? "中心概念と背景" : "Core concept and background"),
+      makeTheme(1, ja ? "主要な問題設定" : "Main problem framing"),
+      makeTheme(2, ja ? "方法・事例・証拠" : "Methods, cases, or evidence"),
+      makeTheme(3, ja ? "示唆と今後の課題" : "Implications and future issues")
+    ]
+  };
+}
+
+export function fallbackReportOutline(
+  plan: ThemeCandidate,
+  references: ReferenceItem[],
+  pdfThemes: PdfTheme[],
+  outputLanguage: "ja" | "en"
+): ReportOutline {
+  const ja = outputLanguage === "ja";
+  const paperIds = references.map((reference) => reference.id);
+
+  return {
+    title: plan.title,
+    thesis: plan.thesisHint,
+    selectedPdfThemes: pdfThemes.map((theme) => theme.id),
+    selectedPaperIds: paperIds,
+    sections: [
+      {
+        title: ja ? "1. 問題意識と背景" : "1. Problem and background",
+        purpose: ja ? "テーマの背景とレポートで扱う範囲を示す。" : "Introduce the background and scope.",
+        keyPoints: [plan.researchQuestion, ...pdfThemes.slice(0, 1).map((theme) => theme.summary)],
+        paperIds: paperIds.slice(0, 2)
+      },
+      {
+        title: ja ? "2. 先行研究の整理" : "2. Prior research",
+        purpose: ja ? "選択した論文を使って、既存研究の流れを整理する。" : "Use selected papers to map the literature.",
+        keyPoints: references.slice(0, 3).map((reference) => reference.abstractOrMetadataSummary),
+        paperIds: paperIds.slice(0, 4)
+      },
+      {
+        title: ja ? "3. PDFから得た論点の組み込み" : "3. Integrating PDF themes",
+        purpose: ja ? "PDFから選んだ抜粋をレポートの内容要素として使う。" : "Use selected PDF themes as report content elements.",
+        keyPoints: pdfThemes.map((theme) => `${theme.title}: ${theme.summary}`),
+        paperIds: paperIds.slice(2, 5)
+      },
+      {
+        title: ja ? "4. 考察と結論" : "4. Discussion and conclusion",
+        purpose: ja ? "問いへの暫定的な答えと限界をまとめる。" : "Answer the research question and note limitations.",
+        keyPoints: [plan.thesisHint, plan.paperStrategy],
+        paperIds: paperIds.slice(0, 6)
+      }
+    ],
+    nextSteps: ja
+      ? ["選択論文の本文または抄録を確認する", "引用形式を授業指定に合わせる", "反対意見を補う論文を1本追加する"]
+      : ["Check the abstracts or full text of selected papers", "Adjust citation style to course requirements", "Add one paper with a contrasting view"]
+  };
 }
 
 export function fallbackSummary(reference: ReferenceItem, outputLanguage: "ja" | "en"): Pick<ReferenceItem, "abstractOrMetadataSummary" | "whyUseful"> {

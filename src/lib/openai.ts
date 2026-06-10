@@ -1,4 +1,4 @@
-import type { InterviewAnswer, LibrarianQuestion, ReferenceItem, ThemeCandidate } from "./types";
+import type { InterviewAnswer, LibrarianQuestion, PdfInsightResult, PdfTheme, ReferenceItem, ReportOutline, ThemeCandidate } from "./types";
 
 const DEFAULT_MODEL = "gpt-5.4-mini";
 
@@ -50,6 +50,60 @@ async function generateStructured<T>(prompt: string, schema: JsonSchema): Promis
   return JSON.parse(text) as T;
 }
 
+async function generateStructuredFromContent<T>(
+  content: Array<Record<string, unknown>>,
+  schema: JsonSchema,
+  model = process.env.OPENAI_MODEL ?? DEFAULT_MODEL
+): Promise<T | null> {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    return null;
+  }
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model,
+      input: [
+        {
+          role: "user",
+          content
+        }
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "ai_librarian_result",
+          schema,
+          strict: true
+        }
+      }
+    })
+  });
+
+  if (!response.ok) {
+    console.warn("OpenAI file request failed", response.status, await response.text());
+    return null;
+  }
+
+  const payload = (await response.json()) as {
+    output_text?: string;
+    output?: Array<{ content?: Array<{ text?: string }> }>;
+  };
+  const text = payload.output_text ?? payload.output?.flatMap((item) => item.content ?? []).find((item) => item.text)?.text;
+
+  if (!text) {
+    return null;
+  }
+
+  return JSON.parse(text) as T;
+}
+
 export async function generateLibrarianQuestions(topic: string, outputLanguage: "ja" | "en"): Promise<LibrarianQuestion[] | null> {
   const schema = {
     type: "object",
@@ -69,7 +123,7 @@ export async function generateLibrarianQuestions(topic: string, outputLanguage: 
             type: { type: "string", enum: ["choice", "text"] },
             label: { type: "string" },
             helpText: { type: "string" },
-            options: { type: "array", items: { type: "string" }, minItems: 0, maxItems: 5 },
+            options: { type: "array", items: { type: "string" }, minItems: 0, maxItems: 6 },
             required: { type: "boolean" }
           }
         }
@@ -90,7 +144,116 @@ export async function generateLibrarianQuestions(topic: string, outputLanguage: 
   return result?.questions ?? null;
 }
 
-export async function generateThemeCandidates(topic: string, outputLanguage: "ja" | "en", answers: InterviewAnswer[] = []): Promise<ThemeCandidate[] | null> {
+export async function generatePdfInsights(
+  pdfText: string,
+  outputLanguage: "ja" | "en",
+  avoidThemes: string[] = []
+): Promise<PdfInsightResult | null> {
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["documentTitle", "summary", "themes"],
+    properties: {
+      documentTitle: { type: "string" },
+      summary: { type: "string" },
+      themes: {
+        type: "array",
+        minItems: 4,
+        maxItems: 6,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["id", "title", "summary", "keywords", "evidence"],
+          properties: {
+            id: { type: "string" },
+            title: { type: "string" },
+            summary: { type: "string" },
+            keywords: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 7 },
+            evidence: { type: "string" }
+          }
+        }
+      }
+    }
+  };
+
+  const prompt = [
+    "You are an academic librarian reading a PDF for an undergraduate student.",
+    "Summarize the document and extract important report-worthy themes.",
+    "Themes must be grounded only in the supplied PDF text. Do not invent claims.",
+    "If avoid themes are provided, extract different but still important themes where possible.",
+    `Output language: ${outputLanguage}.`,
+    `Avoid themes: ${JSON.stringify(avoidThemes)}`,
+    `PDF text excerpt: ${pdfText.slice(0, 24000)}`
+  ].join("\n");
+
+  return generateStructured<PdfInsightResult>(prompt, schema);
+}
+
+export async function generatePdfInsightsFromPdfFile(
+  fileName: string,
+  pdfBytes: Buffer,
+  outputLanguage: "ja" | "en",
+  avoidThemes: string[] = []
+): Promise<PdfInsightResult | null> {
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["documentTitle", "summary", "themes"],
+    properties: {
+      documentTitle: { type: "string" },
+      summary: { type: "string" },
+      themes: {
+        type: "array",
+        minItems: 4,
+        maxItems: 6,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["id", "title", "summary", "keywords", "evidence"],
+          properties: {
+            id: { type: "string" },
+            title: { type: "string" },
+            summary: { type: "string" },
+            keywords: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 7 },
+            evidence: { type: "string" }
+          }
+        }
+      }
+    }
+  };
+
+  const base64 = pdfBytes.toString("base64");
+  return generateStructuredFromContent<PdfInsightResult>(
+    [
+      {
+        type: "input_file",
+        filename: fileName || "uploaded.pdf",
+        file_data: `data:application/pdf;base64,${base64}`
+      },
+      {
+        type: "input_text",
+        text: [
+          "You are an academic librarian reading a scanned or image-based PDF for an undergraduate student.",
+          "Use OCR/vision over the PDF pages when normal text extraction is not available.",
+          "Summarize the document and extract important report-worthy themes grounded only in the PDF.",
+          "If avoid themes are provided, extract different but still important themes where possible.",
+          "Keep evidence excerpts short.",
+          `Output language: ${outputLanguage}.`,
+          `Avoid themes: ${JSON.stringify(avoidThemes)}`
+        ].join("\n")
+      }
+    ],
+    schema,
+    process.env.OPENAI_OCR_MODEL ?? process.env.OPENAI_MODEL ?? DEFAULT_MODEL
+  );
+}
+
+export async function generateThemeCandidates(
+  topic: string,
+  outputLanguage: "ja" | "en",
+  answers: InterviewAnswer[] = [],
+  pdfThemes: PdfTheme[] = []
+): Promise<ThemeCandidate[] | null> {
   const schema = {
     type: "object",
     additionalProperties: false,
@@ -127,11 +290,70 @@ export async function generateThemeCandidates(topic: string, outputLanguage: "ja
     "Do not invent bibliography entries.",
     `Output language for title, question, and reason: ${outputLanguage}.`,
     `Student topic: ${topic}`,
-    `Interview answers JSON: ${JSON.stringify(answers)}`
+    `Interview answers JSON: ${JSON.stringify(answers)}`,
+    `Selected PDF themes JSON: ${JSON.stringify(pdfThemes)}`
   ].join("\n");
 
   const result = await generateStructured<{ candidates: ThemeCandidate[] }>(prompt, schema);
   return result?.candidates ?? null;
+}
+
+export async function generateReportOutline(
+  plan: ThemeCandidate,
+  references: ReferenceItem[],
+  pdfThemes: PdfTheme[],
+  outputLanguage: "ja" | "en"
+): Promise<ReportOutline | null> {
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["title", "thesis", "sections", "selectedPdfThemes", "selectedPaperIds", "nextSteps"],
+    properties: {
+      title: { type: "string" },
+      thesis: { type: "string" },
+      sections: {
+        type: "array",
+        minItems: 4,
+        maxItems: 6,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["title", "purpose", "keyPoints", "paperIds"],
+          properties: {
+            title: { type: "string" },
+            purpose: { type: "string" },
+            keyPoints: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 5 },
+            paperIds: { type: "array", items: { type: "string" }, minItems: 0, maxItems: 8 }
+          }
+        }
+      },
+      selectedPdfThemes: { type: "array", items: { type: "string" } },
+      selectedPaperIds: { type: "array", items: { type: "string" } },
+      nextSteps: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 5 }
+    }
+  };
+
+  const safeReferences = references.map((reference) => ({
+    id: reference.id,
+    title: reference.title,
+    authors: reference.authors,
+    year: reference.year,
+    summary: reference.abstractOrMetadataSummary,
+    relevanceScore: reference.relevanceScore,
+    apa7: reference.apa7
+  }));
+
+  const prompt = [
+    "You are an academic librarian helping a student build a report outline.",
+    "Use the chosen report plan, selected PDF themes, and selected verified papers.",
+    "Every section should say which selected papers support it using paperIds.",
+    `Output language: ${outputLanguage}.`,
+    `Report plan JSON: ${JSON.stringify(plan)}`,
+    `Selected PDF themes JSON: ${JSON.stringify(pdfThemes)}`,
+    `Selected papers JSON: ${JSON.stringify(safeReferences)}`
+  ].join("\n");
+
+  return generateStructured<ReportOutline>(prompt, schema);
 }
 
 export async function enrichReferences(

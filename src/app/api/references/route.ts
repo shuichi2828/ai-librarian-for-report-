@@ -7,6 +7,7 @@ import { enrichReferences } from "@/lib/openai";
 import { searchAllProviders } from "@/lib/providers";
 import { rateLimit } from "@/lib/rateLimit";
 import { dedupeAndRank } from "@/lib/ranking";
+import { scorePaperRelevance } from "@/lib/relevance";
 import type { ReferenceItem, ThemeCandidate } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -62,7 +63,10 @@ export async function POST(request: Request) {
   const { candidate, outputLanguage } = parsed.data;
   const language = resolveOutputLanguage(candidateText(candidate), outputLanguage);
   const { papers, warnings } = await searchAllProviders(candidate);
-  const ranked = dedupeAndRank(papers, 15);
+  const ranked = dedupeAndRank(papers, 40)
+    .map((paper) => ({ paper, relevance: scorePaperRelevance(paper, candidate) }))
+    .sort((a, b) => b.relevance.score - a.relevance.score)
+    .slice(0, 15);
   const alternativeKeywords = [...candidate.keywordsJa.slice(0, 6), ...candidate.keywordsEn.slice(0, 6)];
   const refinementSuggestions =
     language === "ja"
@@ -92,7 +96,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const references: ReferenceItem[] = ranked.map((paper) => {
+  const references: ReferenceItem[] = ranked.map(({ paper, relevance }) => {
     const reference: ReferenceItem = {
       id: buildReferenceId({ doi: paper.doi, title: paper.title }),
       title: paper.title,
@@ -108,6 +112,8 @@ export async function POST(request: Request) {
       apa7: formatApa7(paper),
       sourceProvider: paper.provider,
       citationCount: paper.citationCount,
+      relevanceScore: relevance.score,
+      relevanceReason: relevance.reason,
       verifiedMetadata: true
     };
     return { ...reference, ...fallbackSummary(reference, language) };

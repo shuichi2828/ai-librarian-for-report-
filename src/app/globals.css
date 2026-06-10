@@ -348,7 +348,9 @@ h1 {
 }
 
 .anglesPane,
-.referencesPane {
+.referencesPane,
+.pdfPane,
+.outlinePane {
   min-width: 0;
 }
 
@@ -385,12 +387,110 @@ h1 {
 .angleCard,
 .referenceCard,
 .questionCard,
+.selectCard,
+.pdfResult,
+.outlineResult,
 .placeholderBlock,
 .notice,
 .loadingBlock {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
+}
+
+.pdfPane,
+.outlinePane {
+  margin-bottom: 22px;
+}
+
+.pdfControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 14px;
+}
+
+.inlineToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fdfaf2;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 0 12px;
+}
+
+.modeBadge {
+  display: inline-flex;
+  margin-bottom: 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--teal);
+  padding: 5px 9px;
+  font-weight: 700;
+}
+
+.pdfControls input[type="file"] {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fdfaf2;
+  padding: 9px;
+  max-width: 100%;
+}
+
+.pdfResult,
+.outlineResult {
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.themeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.selectCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 10px;
+  padding: 12px;
+}
+
+.selectCard.selected {
+  border-color: var(--teal);
+  background: #f4fbf8;
+}
+
+.selectCard input {
+  margin-top: 3px;
+}
+
+.selectCard span,
+.paperSelect {
+  font-weight: 700;
+}
+
+.selectCard small,
+.selectCard em {
+  grid-column: 2;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.selectCard em {
+  font-style: normal;
+  color: var(--moss);
+  font-size: 12px;
 }
 
 .angleCard {
@@ -525,11 +625,32 @@ textarea {
   text-transform: uppercase;
 }
 
+.referenceMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 8px;
+}
+
 .referenceCard h3 {
   margin: 8px 0;
   font-size: 20px;
   line-height: 1.3;
   overflow-wrap: anywhere;
+}
+
+.paperSelect {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fdfaf2;
+  color: var(--teal);
+  padding: 8px 10px;
+  margin-bottom: 12px;
 }
 
 .referenceCard p {
@@ -570,6 +691,27 @@ code {
 .referenceCard a {
   color: var(--teal);
   font-weight: 700;
+}
+
+.outlineSection {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  margin-top: 14px;
+}
+
+.outlineSection h4 {
+  margin: 0 0 8px;
+}
+
+.outlineSection p,
+.outlineSection li,
+.outlineSection small {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.outlineSection ul {
+  padding-left: 20px;
 }
 
 .spin {

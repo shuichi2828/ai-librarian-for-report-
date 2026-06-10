@@ -26,7 +26,15 @@ export async function POST(request: Request) {
   const { topic, outputLanguage } = parsed.data;
   const language = resolveOutputLanguage(topic, outputLanguage);
   const generated = await generateLibrarianQuestions(topic, language);
-  const questions = generated?.length ? generated : fallbackLibrarianQuestions(topic, language);
+  const otherLabel = language === "ja" ? "その他" : "Other";
+  const questions = (generated?.length ? generated : fallbackLibrarianQuestions(topic, language)).map((question) => {
+    if (question.type !== "choice") {
+      return question;
+    }
+
+    const options = question.options ?? [];
+    return options.some((option) => option.toLowerCase() === otherLabel.toLowerCase()) ? question : { ...question, options: [...options, otherLabel] };
+  });
 
   return NextResponse.json({
     questions,

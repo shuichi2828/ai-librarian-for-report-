@@ -4,6 +4,16 @@ A bilingual AI librarian for university report planning. Students enter a broad 
 
 The app includes open guest login. Anyone can enter a name or email and start using it. This is not identity verification; it only separates saved plan history in the browser.
 
+## Features
+
+- Guest login for public use.
+- Librarian-style follow-up questions with an `Other` option and custom text.
+- Optional PDF upload. The app summarizes the PDF and extracts themes that can be selected and folded into report plans.
+- OpenAI OCR fallback for scanned/image PDFs.
+- Paper search across OpenAlex, Crossref, Semantic Scholar, and CiNii.
+- Relevance-ranked paper candidates with percentage scores.
+- Multi-paper selection for building a report outline that incorporates chosen papers and PDF themes.
+
 ## Run
 
 ```powershell
@@ -23,6 +33,7 @@ The easiest public deployment path for this Next.js app is Vercel.
 3. Add these environment variables in Vercel Project Settings:
    - `OPENAI_API_KEY`
    - `OPENAI_MODEL` (optional, defaults to `gpt-5.4-mini`)
+   - `OPENAI_OCR_MODEL` (optional, defaults to `OPENAI_MODEL`)
    - `CROSSREF_MAILTO` (recommended)
    - `OPENALEX_API_KEY` (optional)
    - `SEMANTIC_SCHOLAR_API_KEY` (optional)

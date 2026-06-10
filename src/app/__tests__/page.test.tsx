@@ -12,6 +12,17 @@ describe("Home", () => {
   it("renders search controls and language switch", () => {
     render(<Home />);
 
+    expect(screen.getByLabelText("Name or email")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Log in" })).toBeInTheDocument();
+  });
+
+  it("renders app controls after login", async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+
+    await user.type(screen.getByLabelText("Name or email"), "student@example.com");
+    await user.click(screen.getByRole("button", { name: "Log in" }));
+
     expect(screen.getByLabelText("Research topic")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ask librarian" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "English" })).toBeInTheDocument();
@@ -100,6 +111,8 @@ describe("Home", () => {
     });
 
     render(<Home />);
+    await user.type(screen.getByLabelText("Name or email"), "student@example.com");
+    await user.click(screen.getByRole("button", { name: "Log in" }));
     await user.click(screen.getByRole("button", { name: "Ask librarian" }));
 
     expect(await screen.findByText("What should this report prioritize?")).toBeInTheDocument();
