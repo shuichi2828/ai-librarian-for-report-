@@ -1,4 +1,14 @@
-import type { InterviewAnswer, LibrarianQuestion, PdfInsightResult, PdfTheme, ReferenceItem, ReportOutline, ThemeCandidate } from "./types";
+import type {
+  AssignmentDetails,
+  ContentPoint,
+  InterviewAnswer,
+  LibrarianQuestion,
+  PdfInsightResult,
+  PdfTheme,
+  ReferenceItem,
+  ReportOutline,
+  ThemeCandidate
+} from "./types";
 
 const DEFAULT_MODEL = "gpt-5.4-mini";
 
@@ -248,11 +258,60 @@ export async function generatePdfInsightsFromPdfFile(
   );
 }
 
+export async function generateContentPoints(
+  topic: string,
+  details: AssignmentDetails,
+  pdfThemes: PdfTheme[],
+  outputLanguage: "ja" | "en"
+): Promise<ContentPoint[] | null> {
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["points"],
+    properties: {
+      points: {
+        type: "array",
+        minItems: 8,
+        maxItems: 12,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["id", "title", "description", "type", "keywordsJa", "keywordsEn", "source"],
+          properties: {
+            id: { type: "string" },
+            title: { type: "string" },
+            description: { type: "string" },
+            type: { type: "string", enum: ["background", "argument", "case", "theory", "evidence", "counterargument", "policy", "pdf", "custom"] },
+            keywordsJa: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 6 },
+            keywordsEn: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 6 },
+            source: { type: "string", enum: ["ai", "pdf", "user"] }
+          }
+        }
+      }
+    }
+  };
+
+  const prompt = [
+    "You are an academic librarian helping an undergraduate decide what content to include in a report.",
+    "Return 8 to 12 selectable content points. They should be concrete enough to become sections, arguments, evidence, counterarguments, cases, or policy points.",
+    "Use the assignment prompt, student's tentative opinion, must-include points, and PDF themes when available.",
+    "Include points that support the student's view and at least one point that complicates or challenges it.",
+    `Output language for title and description: ${outputLanguage}.`,
+    `Research topic: ${topic}`,
+    `Assignment details JSON: ${JSON.stringify(details)}`,
+    `PDF themes JSON: ${JSON.stringify(pdfThemes)}`
+  ].join("\n");
+
+  const result = await generateStructured<{ points: ContentPoint[] }>(prompt, schema);
+  return result?.points ?? null;
+}
+
 export async function generateThemeCandidates(
   topic: string,
   outputLanguage: "ja" | "en",
   answers: InterviewAnswer[] = [],
-  pdfThemes: PdfTheme[] = []
+  pdfThemes: PdfTheme[] = [],
+  contentPoints: ContentPoint[] = []
 ): Promise<ThemeCandidate[] | null> {
   const schema = {
     type: "object",
@@ -266,7 +325,7 @@ export async function generateThemeCandidates(
         items: {
           type: "object",
           additionalProperties: false,
-          required: ["id", "title", "researchQuestion", "keywordsJa", "keywordsEn", "reason", "thesisHint", "outline", "paperStrategy"],
+          required: ["id", "title", "researchQuestion", "keywordsJa", "keywordsEn", "reason", "thesisHint", "outline", "paperStrategy", "contentPointIds"],
           properties: {
             id: { type: "string" },
             title: { type: "string" },
@@ -276,7 +335,8 @@ export async function generateThemeCandidates(
             reason: { type: "string" },
             thesisHint: { type: "string" },
             outline: { type: "array", items: { type: "string" }, minItems: 4, maxItems: 6 },
-            paperStrategy: { type: "string" }
+            paperStrategy: { type: "string" },
+            contentPointIds: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 8 }
           }
         }
       }
@@ -286,12 +346,13 @@ export async function generateThemeCandidates(
   const prompt = [
     "You are an academic librarian helping undergraduate students narrow report topics.",
     "Return exactly four realistic report plans based on the student's topic and interview answers.",
-    "Each plan must make the vague idea more concrete and include a research question, thesis hint, outline, and bilingual search keywords.",
+    "Each plan must use selected content points, make the vague idea more concrete, and include a research question, thesis hint, outline, and bilingual search keywords.",
     "Do not invent bibliography entries.",
     `Output language for title, question, and reason: ${outputLanguage}.`,
     `Student topic: ${topic}`,
     `Interview answers JSON: ${JSON.stringify(answers)}`,
-    `Selected PDF themes JSON: ${JSON.stringify(pdfThemes)}`
+    `Selected PDF themes JSON: ${JSON.stringify(pdfThemes)}`,
+    `Selected content points JSON: ${JSON.stringify(contentPoints)}`
   ].join("\n");
 
   const result = await generateStructured<{ candidates: ThemeCandidate[] }>(prompt, schema);
@@ -302,12 +363,13 @@ export async function generateReportOutline(
   plan: ThemeCandidate,
   references: ReferenceItem[],
   pdfThemes: PdfTheme[],
+  contentPoints: ContentPoint[],
   outputLanguage: "ja" | "en"
 ): Promise<ReportOutline | null> {
   const schema = {
     type: "object",
     additionalProperties: false,
-    required: ["title", "thesis", "sections", "selectedPdfThemes", "selectedPaperIds", "nextSteps"],
+    required: ["title", "thesis", "sections", "selectedPdfThemes", "selectedContentPointIds", "selectedPaperIds", "nextSteps"],
     properties: {
       title: { type: "string" },
       thesis: { type: "string" },
@@ -328,6 +390,7 @@ export async function generateReportOutline(
         }
       },
       selectedPdfThemes: { type: "array", items: { type: "string" } },
+      selectedContentPointIds: { type: "array", items: { type: "string" } },
       selectedPaperIds: { type: "array", items: { type: "string" } },
       nextSteps: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 5 }
     }
@@ -345,10 +408,11 @@ export async function generateReportOutline(
 
   const prompt = [
     "You are an academic librarian helping a student build a report outline.",
-    "Use the chosen report plan, selected PDF themes, and selected verified papers.",
+    "Use the chosen report plan, selected content points, selected PDF themes, and selected verified papers.",
     "Every section should say which selected papers support it using paperIds.",
     `Output language: ${outputLanguage}.`,
     `Report plan JSON: ${JSON.stringify(plan)}`,
+    `Selected content points JSON: ${JSON.stringify(contentPoints)}`,
     `Selected PDF themes JSON: ${JSON.stringify(pdfThemes)}`,
     `Selected papers JSON: ${JSON.stringify(safeReferences)}`
   ].join("\n");

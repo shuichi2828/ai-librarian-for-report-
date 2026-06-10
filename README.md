@@ -7,7 +7,8 @@ The app includes open guest login. Anyone can enter a name or email and start us
 ## Features
 
 - Guest login for public use.
-- Librarian-style follow-up questions with an `Other` option and custom text.
+- Assignment/material intake for the prompt, the student's opinion, and must-include points.
+- AI-generated content suggestions that the user selects before report plans are created.
 - Optional PDF upload. The app summarizes the PDF and extracts themes that can be selected and folded into report plans.
 - OpenAI OCR fallback for scanned/image PDFs.
 - Paper search across OpenAlex, Crossref, Semantic Scholar, and CiNii.

@@ -20,8 +20,9 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type {
+  AssignmentDetails,
+  ContentPoint,
   InterviewAnswer,
-  LibrarianQuestion,
   OutputLanguage,
   PdfInsightResult,
   ReferenceItem,
@@ -30,8 +31,8 @@ import type {
   ThemeCandidate
 } from "@/lib/types";
 
-type QuestionsResponse = {
-  questions: LibrarianQuestion[];
+type ContentPointsResponse = {
+  points: ContentPoint[];
   outputLanguage: "ja" | "en";
   usedFallback: boolean;
 };
@@ -63,13 +64,13 @@ type HistoryEntry = {
   createdAt: string;
 };
 
-const HISTORY_KEY = "ai-librarian-history-v2";
-const USER_KEY = "ai-librarian-user-v1";
-
 type GuestUser = {
   id: string;
   name: string;
 };
+
+const HISTORY_KEY = "ai-librarian-history-v3";
+const USER_KEY = "ai-librarian-user-v1";
 
 function languageLabel(language: OutputLanguage) {
   if (language === "ja") return "Japanese";
@@ -87,13 +88,19 @@ export default function Home() {
   const [loginName, setLoginName] = useState("");
   const [topic, setTopic] = useState("Generative AI and university education");
   const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>("auto");
-  const [questions, setQuestions] = useState<LibrarianQuestion[]>([]);
-  const [answerMap, setAnswerMap] = useState<Record<string, string>>({});
+  const [details, setDetails] = useState<AssignmentDetails>({
+    assignmentPrompt: "",
+    userOpinion: "",
+    mustInclude: ""
+  });
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [forcePdfOcr, setForcePdfOcr] = useState(false);
   const [pdfMode, setPdfMode] = useState<"text" | "openai-ocr">();
   const [pdfInsight, setPdfInsight] = useState<PdfInsightResult | null>(null);
   const [selectedPdfThemeIds, setSelectedPdfThemeIds] = useState<string[]>([]);
+  const [contentPoints, setContentPoints] = useState<ContentPoint[]>([]);
+  const [selectedContentPointIds, setSelectedContentPointIds] = useState<string[]>([]);
+  const [customPoint, setCustomPoint] = useState("");
   const [plans, setPlans] = useState<ThemeCandidate[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>();
   const [references, setReferences] = useState<ReferenceItem[]>([]);
@@ -104,7 +111,7 @@ export default function Home() {
   const [refinements, setRefinements] = useState<string[]>([]);
   const [totalReviewed, setTotalReviewed] = useState<number>();
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [status, setStatus] = useState<"idle" | "questions" | "pdf" | "plans" | "references" | "outline">("idle");
+  const [status, setStatus] = useState<"idle" | "points" | "pdf" | "plans" | "references" | "outline">("idle");
   const [error, setError] = useState<string>();
 
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedPlanId), [plans, selectedPlanId]);
@@ -127,11 +134,7 @@ export default function Home() {
     }
 
     const saved = window.localStorage.getItem(`${HISTORY_KEY}-${user.id}`);
-    if (saved) {
-      setHistory(JSON.parse(saved) as HistoryEntry[]);
-    } else {
-      setHistory([]);
-    }
+    setHistory(saved ? (JSON.parse(saved) as HistoryEntry[]) : []);
   }, [user]);
 
   function persistHistory(nextHistory: HistoryEntry[]) {
@@ -142,7 +145,6 @@ export default function Home() {
   function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const name = loginName.trim();
-
     if (!name) return;
 
     const nextUser = {
@@ -156,84 +158,84 @@ export default function Home() {
   function logout() {
     setUser(null);
     setHistory([]);
-    setQuestions([]);
+    setContentPoints([]);
     setPlans([]);
     setReferences([]);
+    setReportOutline(null);
     setError(undefined);
     window.localStorage.removeItem(USER_KEY);
   }
 
-  function currentAnswers(): InterviewAnswer[] {
-    const answers = questions
-      .map((question) => ({
-        questionId: question.id,
-        question: question.label,
-        answer:
-          question.type === "choice" && /^(Other|その他)$/i.test(answerMap[question.id] ?? "")
-            ? `${answerMap[question.id]}: ${answerMap[`${question.id}__other`]?.trim() ?? ""}`
-            : answerMap[question.id]?.trim() ?? ""
-      }))
-      .filter((item) => item.answer.length > 0);
+  function selectedPdfThemes() {
+    return pdfInsight?.themes.filter((theme) => selectedPdfThemeIds.includes(theme.id)) ?? [];
+  }
 
-    const selectedPdfThemes = pdfInsight?.themes.filter((theme) => selectedPdfThemeIds.includes(theme.id)) ?? [];
-    if (selectedPdfThemes.length > 0) {
+  function selectedContentPoints() {
+    return contentPoints.filter((point) => selectedContentPointIds.includes(point.id));
+  }
+
+  function currentAnswers(): InterviewAnswer[] {
+    const answers: InterviewAnswer[] = [
+      { questionId: "assignment-prompt", question: "Assignment prompt", answer: details.assignmentPrompt },
+      { questionId: "user-opinion", question: "User opinion", answer: details.userOpinion },
+      { questionId: "must-include", question: "Must-include points", answer: details.mustInclude }
+    ].filter((item) => item.answer.trim().length > 0);
+
+    if (selectedPdfThemes().length > 0) {
       answers.push({
         questionId: "selected-pdf-themes",
         question: "Selected PDF themes",
-        answer: selectedPdfThemes.map((theme) => `${theme.title}: ${theme.summary}`).join(" / ")
+        answer: selectedPdfThemes().map((theme) => `${theme.title}: ${theme.summary}`).join(" / ")
+      });
+    }
+
+    if (selectedContentPoints().length > 0) {
+      answers.push({
+        questionId: "selected-content-points",
+        question: "Selected content points",
+        answer: selectedContentPoints().map((point) => `${point.title}: ${point.description}`).join(" / ")
       });
     }
 
     return answers;
   }
 
-  async function getQuestions(event: FormEvent<HTMLFormElement>) {
+  async function suggestContentPoints(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!topic.trim()) return;
 
-    setStatus("questions");
+    setStatus("points");
     setError(undefined);
-    setQuestions([]);
+    setContentPoints([]);
+    setSelectedContentPointIds([]);
     setPlans([]);
     setReferences([]);
     setSelectedReferenceIds([]);
     setReportOutline(null);
     setWarnings([]);
-    setAnswerMap({});
 
     try {
-      const response = await fetch("/api/librarian-questions", {
+      const response = await fetch("/api/content-points", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, outputLanguage })
+        body: JSON.stringify({ topic, outputLanguage, details, pdfThemes: selectedPdfThemes() })
       });
 
-      if (!response.ok) throw new Error("questions");
+      if (!response.ok) throw new Error("points");
 
-      const result = (await response.json()) as QuestionsResponse;
-      setQuestions(result.questions);
-      setAnswerMap(
-        Object.fromEntries(result.questions.filter((question) => question.type === "choice").map((question) => [question.id, question.options?.[0] ?? ""]))
-      );
+      const result = (await response.json()) as ContentPointsResponse;
+      setContentPoints(result.points);
+      setSelectedContentPointIds(result.points.slice(0, 5).map((point) => point.id));
     } catch {
-      setError("Could not prepare librarian questions.");
+      setError("Could not create content suggestions.");
     } finally {
       setStatus("idle");
     }
   }
 
   async function getPlans() {
-    const missingRequired = questions.some((question) => question.required && !(answerMap[question.id] ?? "").trim());
-    if (missingRequired) {
-      setError("Please answer the required questions first.");
-      return;
-    }
-
-    const missingOther = questions.some(
-      (question) => question.type === "choice" && /^(Other|その他)$/i.test(answerMap[question.id] ?? "") && !answerMap[`${question.id}__other`]?.trim()
-    );
-    if (missingOther) {
-      setError("Please write your own answer for Other.");
+    if (selectedContentPoints().length === 0) {
+      setError("Please select at least one content point first.");
       return;
     }
 
@@ -253,7 +255,8 @@ export default function Home() {
           topic,
           outputLanguage,
           answers: currentAnswers(),
-          pdfThemes: pdfInsight?.themes.filter((theme) => selectedPdfThemeIds.includes(theme.id)) ?? []
+          pdfThemes: selectedPdfThemes(),
+          contentPoints: selectedContentPoints()
         })
       });
 
@@ -345,18 +348,10 @@ export default function Home() {
       setPdfMode(result.extractionMode);
       setSelectedPdfThemeIds(result.themes.slice(0, 2).map((theme) => theme.id));
     } catch {
-      setError("Could not read this PDF. Please try a smaller text-based PDF.");
+      setError("Could not read this PDF. Please try OCR mode or a smaller text-based PDF.");
     } finally {
       setStatus("idle");
     }
-  }
-
-  function togglePdfTheme(themeId: string) {
-    setSelectedPdfThemeIds((current) => (current.includes(themeId) ? current.filter((id) => id !== themeId) : [...current, themeId]));
-  }
-
-  function toggleReference(referenceId: string) {
-    setSelectedReferenceIds((current) => (current.includes(referenceId) ? current.filter((id) => id !== referenceId) : [...current, referenceId]));
   }
 
   async function createOutline() {
@@ -381,7 +376,8 @@ export default function Home() {
         body: JSON.stringify({
           plan: selectedPlan,
           references: selectedReferences,
-          pdfThemes: pdfInsight?.themes.filter((theme) => selectedPdfThemeIds.includes(theme.id)) ?? [],
+          pdfThemes: selectedPdfThemes(),
+          contentPoints: selectedContentPoints(),
           outputLanguage: outputLanguage === "ja" ? "ja" : "en"
         })
       });
@@ -400,8 +396,6 @@ export default function Home() {
   function loadHistory(entry: HistoryEntry) {
     setTopic(entry.topic);
     setOutputLanguage(entry.outputLanguage);
-    setQuestions([]);
-    setAnswerMap(Object.fromEntries(entry.answers.map((answer) => [answer.questionId, answer.answer])));
     setPlans([entry.plan]);
     setSelectedPlanId(entry.plan.id);
     setReferences(entry.references);
@@ -409,6 +403,37 @@ export default function Home() {
     setAlternatives([]);
     setRefinements([]);
     setError(undefined);
+  }
+
+  function togglePdfTheme(themeId: string) {
+    setSelectedPdfThemeIds((current) => (current.includes(themeId) ? current.filter((id) => id !== themeId) : [...current, themeId]));
+  }
+
+  function toggleContentPoint(pointId: string) {
+    setSelectedContentPointIds((current) => (current.includes(pointId) ? current.filter((id) => id !== pointId) : [...current, pointId]));
+  }
+
+  function toggleReference(referenceId: string) {
+    setSelectedReferenceIds((current) => (current.includes(referenceId) ? current.filter((id) => id !== referenceId) : [...current, referenceId]));
+  }
+
+  function addCustomContentPoint() {
+    const title = customPoint.trim();
+    if (!title) return;
+
+    const point: ContentPoint = {
+      id: `custom-${Date.now()}`,
+      title,
+      description: "User-added content point to include in the report.",
+      type: "custom",
+      keywordsJa: [topic, title],
+      keywordsEn: [topic, title],
+      source: "user"
+    };
+
+    setContentPoints((current) => [...current, point]);
+    setSelectedContentPointIds((current) => [...current, point.id]);
+    setCustomPoint("");
   }
 
   if (!user) {
@@ -490,119 +515,55 @@ export default function Home() {
       </aside>
 
       <section className="workspace">
-        <form className="searchBand" onSubmit={getQuestions}>
+        <form className="searchBand" onSubmit={suggestContentPoints}>
           <div className="topicField">
             <label htmlFor="topic">Research topic</label>
-            <input
-              id="topic"
-              value={topic}
-              onChange={(event) => setTopic(event.target.value)}
-              placeholder="Example: generative AI and university education"
-            />
+            <input id="topic" value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="Example: generative AI and university education" />
           </div>
           <div className="languageControl" aria-label="Output language">
             <Languages size={18} />
             {(["auto", "ja", "en"] as const).map((language) => (
-              <button
-                className={outputLanguage === language ? "segmented active" : "segmented"}
-                key={language}
-                onClick={() => setOutputLanguage(language)}
-                type="button"
-              >
+              <button className={outputLanguage === language ? "segmented active" : "segmented"} key={language} onClick={() => setOutputLanguage(language)} type="button">
                 {languageLabel(language)}
               </button>
             ))}
           </div>
           <button className="primaryButton" type="submit" disabled={busy}>
-            {status === "questions" ? <Loader2 size={18} className="spin" /> : <MessageSquareText size={18} />}
-            Ask librarian
+            {status === "points" ? <Loader2 size={18} className="spin" /> : <MessageSquareText size={18} />}
+            Suggest content
           </button>
         </form>
 
         {error && <div className="notice error">{error}</div>}
 
-        <div className="workflowGrid">
-          <section aria-label="Librarian questions">
-            <div className="sectionHeader">
-              <MessageSquareText size={18} />
-              <h2>1. Clarify the idea</h2>
-            </div>
-            <div className="questionList">
-              {questions.length === 0 ? (
-                <div className="placeholderBlock">Enter a broad idea. The librarian will ask follow-up questions before creating report plans.</div>
-              ) : (
-                questions.map((question) => (
-                  <label className="questionCard" key={question.id}>
-                    <span>{question.label}</span>
-                    <small>{question.helpText}</small>
-                    {question.type === "choice" ? (
-                      <>
-                        <select value={answerMap[question.id] ?? ""} onChange={(event) => setAnswerMap({ ...answerMap, [question.id]: event.target.value })}>
-                          {(question.options ?? []).map((option) => (
-                            <option value={option} key={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                        {/^(Other|その他)$/i.test(answerMap[question.id] ?? "") && (
-                          <textarea
-                            value={answerMap[`${question.id}__other`] ?? ""}
-                            onChange={(event) => setAnswerMap({ ...answerMap, [`${question.id}__other`]: event.target.value })}
-                            placeholder="Write your own angle"
-                            rows={2}
-                          />
-                        )}
-                      </>
-                    ) : (
-                      <textarea
-                        value={answerMap[question.id] ?? ""}
-                        onChange={(event) => setAnswerMap({ ...answerMap, [question.id]: event.target.value })}
-                        placeholder="Type your answer"
-                        rows={3}
-                      />
-                    )}
-                  </label>
-                ))
-              )}
-            </div>
-            {questions.length > 0 && (
-              <button className="secondaryButton" type="button" onClick={getPlans} disabled={busy}>
-                {status === "plans" ? <Loader2 size={18} className="spin" /> : <BookOpen size={18} />}
-                Create report plans
-              </button>
-            )}
-          </section>
-
-          <section aria-label="Report plans">
-            <div className="sectionHeader">
-              <BookOpen size={18} />
-              <h2>2. Choose a report plan</h2>
-            </div>
-            <div className="angleList">
-              {plans.length === 0 ? (
-                <div className="placeholderBlock">Plans will appear after the interview.</div>
-              ) : (
-                plans.map((plan) => (
-                  <article className={plan.id === selectedPlanId ? "angleCard selected" : "angleCard"} key={plan.id}>
-                    <span>{plan.title}</span>
-                    <p>{plan.researchQuestion}</p>
-                    <small>{plan.reason}</small>
-                    <div className="outline">
-                      {plan.outline.map((item) => (
-                        <b key={item}>{item}</b>
-                      ))}
-                    </div>
-                    <p className="whyUseful">{plan.thesisHint}</p>
-                    <button className="secondaryButton compact" type="button" onClick={() => getReferences(plan)} disabled={status === "references"}>
-                      {status === "references" && selectedPlanId === plan.id ? <Loader2 size={17} className="spin" /> : <Search size={17} />}
-                      Find papers
-                    </button>
-                  </article>
-                ))
-              )}
-            </div>
-          </section>
-        </div>
+        <section className="detailsPane" aria-label="Assignment details">
+          <div className="sectionHeader">
+            <MessageSquareText size={18} />
+            <h2>1. Add your material</h2>
+          </div>
+          <div className="detailsGrid">
+            <label className="questionCard">
+              <span>Assignment prompt</span>
+              <small>Paste the exact report question or professor instructions.</small>
+              <textarea value={details.assignmentPrompt} onChange={(event) => setDetails({ ...details, assignmentPrompt: event.target.value })} placeholder="Paste assignment prompt" rows={4} />
+            </label>
+            <label className="questionCard">
+              <span>Your opinion or tentative claim</span>
+              <small>Write what you personally want to argue or explore.</small>
+              <textarea
+                value={details.userOpinion}
+                onChange={(event) => setDetails({ ...details, userOpinion: event.target.value })}
+                placeholder="Example: universities should teach responsible use instead of banning AI"
+                rows={4}
+              />
+            </label>
+            <label className="questionCard">
+              <span>Must-include points</span>
+              <small>List concepts, cases, class keywords, or examples you want included.</small>
+              <textarea value={details.mustInclude} onChange={(event) => setDetails({ ...details, mustInclude: event.target.value })} placeholder="AI literacy, plagiarism, university guidelines" rows={4} />
+            </label>
+          </div>
+        </section>
 
         <section className="pdfPane" aria-label="PDF insights">
           <div className="sectionHeader">
@@ -654,10 +615,77 @@ export default function Home() {
           )}
         </section>
 
+        <div className="workflowGrid">
+          <section aria-label="Content suggestions">
+            <div className="sectionHeader">
+              <MessageSquareText size={18} />
+              <h2>2. Pick content points</h2>
+            </div>
+            <div className="questionList">
+              {contentPoints.length === 0 ? (
+                <div className="placeholderBlock">Add your topic and material, then let the librarian suggest content points to include.</div>
+              ) : (
+                contentPoints.map((point) => (
+                  <label className={selectedContentPointIds.includes(point.id) ? "selectCard selected" : "selectCard"} key={point.id}>
+                    <input type="checkbox" checked={selectedContentPointIds.includes(point.id)} onChange={() => toggleContentPoint(point.id)} />
+                    <span>{point.title}</span>
+                    <small>{point.description}</small>
+                    <em>
+                      {point.type} / {point.source}
+                    </em>
+                  </label>
+                ))
+              )}
+            </div>
+            <div className="customPointRow">
+              <input value={customPoint} onChange={(event) => setCustomPoint(event.target.value)} placeholder="Add your own content point" />
+              <button className="secondaryButton compact" type="button" onClick={addCustomContentPoint}>
+                Add
+              </button>
+            </div>
+            {contentPoints.length > 0 && (
+              <button className="secondaryButton" type="button" onClick={getPlans} disabled={busy}>
+                {status === "plans" ? <Loader2 size={18} className="spin" /> : <BookOpen size={18} />}
+                Create report plans
+              </button>
+            )}
+          </section>
+
+          <section aria-label="Report plans">
+            <div className="sectionHeader">
+              <BookOpen size={18} />
+              <h2>3. Choose a report plan</h2>
+            </div>
+            <div className="angleList">
+              {plans.length === 0 ? (
+                <div className="placeholderBlock">Plans will appear after you choose content points.</div>
+              ) : (
+                plans.map((plan) => (
+                  <article className={plan.id === selectedPlanId ? "angleCard selected" : "angleCard"} key={plan.id}>
+                    <span>{plan.title}</span>
+                    <p>{plan.researchQuestion}</p>
+                    <small>{plan.reason}</small>
+                    <div className="outline">
+                      {plan.outline.map((item) => (
+                        <b key={item}>{item}</b>
+                      ))}
+                    </div>
+                    <p className="whyUseful">{plan.thesisHint}</p>
+                    <button className="secondaryButton compact" type="button" onClick={() => getReferences(plan)} disabled={status === "references"}>
+                      {status === "references" && selectedPlanId === plan.id ? <Loader2 size={17} className="spin" /> : <Search size={17} />}
+                      Find papers
+                    </button>
+                  </article>
+                ))
+              )}
+            </div>
+          </section>
+        </div>
+
         <section className="referencesPane" aria-label="References">
           <div className="sectionHeader">
             <Library size={18} />
-            <h2>3. Papers for the plan</h2>
+            <h2>4. Papers for the plan</h2>
             {selectedPlan && <span className="selectedChip">{selectedPlan.title}</span>}
           </div>
 
@@ -720,7 +748,7 @@ export default function Home() {
           <section className="outlinePane" aria-label="Report outline">
             <div className="sectionHeader">
               <ListChecks size={18} />
-              <h2>4. Build outline with selected papers</h2>
+              <h2>5. Build outline with selected papers</h2>
               <span className="selectedChip">{selectedReferenceIds.length} papers selected</span>
             </div>
             <button className="primaryButton" type="button" onClick={createOutline} disabled={busy || selectedReferenceIds.length === 0}>

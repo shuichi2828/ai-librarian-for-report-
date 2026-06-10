@@ -398,9 +398,16 @@ h1 {
   background: var(--surface);
 }
 
+.detailsPane,
 .pdfPane,
 .outlinePane {
   margin-bottom: 22px;
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 12px;
 }
 
 .pdfControls {
@@ -457,6 +464,24 @@ h1 {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 10px;
   margin-top: 12px;
+}
+
+.customPointRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 12px;
+}
+
+.customPointRow input {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fdfaf2;
+  color: var(--ink);
+  outline-color: var(--teal);
+  padding: 0 12px;
 }
 
 .selectCard {
@@ -727,6 +752,7 @@ code {
 @media (max-width: 980px) {
   .shell,
   .workflowGrid,
+  .detailsGrid,
   .contentGrid,
   .searchBand {
     grid-template-columns: 1fr;

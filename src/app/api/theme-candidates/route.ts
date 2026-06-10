@@ -29,6 +29,19 @@ const requestSchema = z.object({
         evidence: z.string()
       })
     )
+    .default([]),
+  contentPoints: z
+    .array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        description: z.string(),
+        type: z.enum(["background", "argument", "case", "theory", "evidence", "counterargument", "policy", "pdf", "custom"]),
+        keywordsJa: z.array(z.string()),
+        keywordsEn: z.array(z.string()),
+        source: z.enum(["ai", "pdf", "user"])
+      })
+    )
     .default([])
 });
 
@@ -43,13 +56,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid topic or output language." }, { status: 400 });
   }
 
-  const { topic, outputLanguage, answers, pdfThemes } = parsed.data;
+  const { topic, outputLanguage, answers, pdfThemes, contentPoints } = parsed.data;
   const language = resolveOutputLanguage(topic, outputLanguage);
-  const generated = await generateThemeCandidates(topic, language, answers, pdfThemes);
-  const candidates = generated?.length === 4 ? generated : fallbackThemeCandidates(topic, language, answers, pdfThemes);
+  const generated = await generateThemeCandidates(topic, language, answers, pdfThemes, contentPoints);
+  const candidates = generated?.length === 4 ? generated : fallbackThemeCandidates(topic, language, answers, pdfThemes, contentPoints);
+  const enrichedCandidates = candidates.map((candidate) => ({
+    ...candidate,
+    keywordsJa: [...new Set([...candidate.keywordsJa, ...contentPoints.flatMap((point) => point.keywordsJa)])].slice(0, 10),
+    keywordsEn: [...new Set([...candidate.keywordsEn, ...contentPoints.flatMap((point) => point.keywordsEn)])].slice(0, 10),
+    contentPointIds: candidate.contentPointIds?.length ? candidate.contentPointIds : contentPoints.slice(0, 6).map((point) => point.id)
+  }));
 
   return NextResponse.json({
-    candidates,
+    candidates: enrichedCandidates,
     outputLanguage: language,
     usedFallback: !generated
   });

@@ -10,11 +10,13 @@ function uniqueQueries(queries: string[]): string[] {
 
 export async function searchAllProviders(candidate: ThemeCandidate): Promise<{ papers: ProviderPaper[]; warnings: string[] }> {
   const jaQueries = uniqueQueries([
+    candidate.keywordsJa.slice(0, 5).join(" "),
     candidate.keywordsJa.join(" "),
     [candidate.researchQuestion, ...candidate.keywordsJa.slice(0, 3)].join(" "),
     [candidate.title, ...candidate.keywordsJa.slice(0, 4)].join(" ")
   ]);
   const enQueries = uniqueQueries([
+    candidate.keywordsEn.slice(0, 5).join(" "),
     candidate.keywordsEn.join(" "),
     [candidate.researchQuestion, ...candidate.keywordsEn.slice(0, 3)].join(" "),
     [candidate.title, ...candidate.keywordsEn.slice(0, 4)].join(" "),

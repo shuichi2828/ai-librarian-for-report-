@@ -1,4 +1,14 @@
-import type { InterviewAnswer, LibrarianQuestion, PdfInsightResult, PdfTheme, ReferenceItem, ReportOutline, ThemeCandidate } from "./types";
+import type {
+  AssignmentDetails,
+  ContentPoint,
+  InterviewAnswer,
+  LibrarianQuestion,
+  PdfInsightResult,
+  PdfTheme,
+  ReferenceItem,
+  ReportOutline,
+  ThemeCandidate
+} from "./types";
 
 export function fallbackLibrarianQuestions(topic: string, outputLanguage: "ja" | "en"): LibrarianQuestion[] {
   const ja = outputLanguage === "ja";
@@ -49,7 +59,91 @@ export function fallbackLibrarianQuestions(topic: string, outputLanguage: "ja" |
   ];
 }
 
-export function fallbackThemeCandidates(topic: string, outputLanguage: "ja" | "en", answers: InterviewAnswer[] = [], pdfThemes: PdfTheme[] = []): ThemeCandidate[] {
+export function fallbackContentPoints(topic: string, details: AssignmentDetails, pdfThemes: PdfTheme[], outputLanguage: "ja" | "en"): ContentPoint[] {
+  const ja = outputLanguage === "ja";
+  const base: ContentPoint[] = [
+    {
+      id: "point-background",
+      title: ja ? "テーマの背景と現状" : "Background and current situation",
+      description: ja ? `${topic}がなぜ大学レポートの論点になるのかを整理します。` : `Explain why ${topic} matters as a university report topic.`,
+      type: "background",
+      keywordsJa: [topic, "背景", "現状"],
+      keywordsEn: [topic, "background", "current situation"],
+      source: "ai"
+    },
+    {
+      id: "point-main-argument",
+      title: ja ? "自分の主張を支える論点" : "Point supporting your claim",
+      description: details.userOpinion || (ja ? "自分の立場を支える根拠を組み込みます。" : "Include evidence that supports your tentative position."),
+      type: "argument",
+      keywordsJa: [topic, "主張", "根拠"],
+      keywordsEn: [topic, "argument", "evidence"],
+      source: "user"
+    },
+    {
+      id: "point-counterargument",
+      title: ja ? "反対意見・限界" : "Counterargument or limitation",
+      description: ja ? "一方的なレポートにしないため、反対意見や限界を入れます。" : "Add a counterargument or limitation so the report is not one-sided.",
+      type: "counterargument",
+      keywordsJa: [topic, "反対意見", "限界"],
+      keywordsEn: [topic, "counterargument", "limitations"],
+      source: "ai"
+    },
+    {
+      id: "point-policy",
+      title: ja ? "制度・ガイドライン" : "Policy or guideline angle",
+      description: ja ? "大学や社会がどう対応すべきかを考える材料にします。" : "Use this to discuss how universities or society should respond.",
+      type: "policy",
+      keywordsJa: [topic, "制度", "ガイドライン"],
+      keywordsEn: [topic, "policy", "guidelines"],
+      source: "ai"
+    },
+    {
+      id: "point-case",
+      title: ja ? "具体例・事例" : "Concrete case or example",
+      description: ja ? "抽象論だけでなく、具体的な事例を入れて説明しやすくします。" : "Include a concrete case so the report does not stay too abstract.",
+      type: "case",
+      keywordsJa: [topic, "事例", "大学"],
+      keywordsEn: [topic, "case study", "university"],
+      source: "ai"
+    }
+  ];
+
+  const mustInclude = details.mustInclude
+    .split(/[,、\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 4)
+    .map<ContentPoint>((item, index) => ({
+      id: `point-must-${index + 1}`,
+      title: item,
+      description: ja ? "ユーザーが必ず入れたい内容です。" : "A must-include point provided by the user.",
+      type: "custom",
+      keywordsJa: [topic, item],
+      keywordsEn: [topic, item],
+      source: "user"
+    }));
+
+  const pdfPoints = pdfThemes.slice(0, 4).map<ContentPoint>((theme) => ({
+    id: `point-${theme.id}`,
+    title: theme.title,
+    description: theme.summary,
+    type: "pdf",
+    keywordsJa: theme.keywords,
+    keywordsEn: theme.keywords,
+    source: "pdf"
+  }));
+
+  return [...base, ...mustInclude, ...pdfPoints].slice(0, 12);
+}
+
+export function fallbackThemeCandidates(
+  topic: string,
+  outputLanguage: "ja" | "en",
+  answers: InterviewAnswer[] = [],
+  pdfThemes: PdfTheme[] = [],
+  contentPoints: ContentPoint[] = []
+): ThemeCandidate[] {
   const ja = outputLanguage === "ja";
   const answerText = answers.map((item) => `${item.question}: ${item.answer}`).join(" / ");
   const related = answers.find((answer) => answer.questionId === "related-topic-detail")?.answer || pdfThemes[0]?.title || topic;
@@ -66,7 +160,8 @@ export function fallbackThemeCandidates(topic: string, outputLanguage: "ja" | "e
       reason: ja ? "漠然としたテーマを、現状、先行研究、課題の順に整理できます。" : "Turns a broad idea into a clear sequence: context, prior work, problem.",
       thesisHint: ja ? `${topic}の影響を整理し、大学で対応すべき課題を示す。` : `Map the impact of ${topic} and identify what universities should address.`,
       outline: ja ? ["背景", "先行研究の整理", "主要な課題", "考察"] : ["Background", "Prior research", "Key issues", "Discussion"],
-      paperStrategy: ja ? "レビュー論文、教育研究、政策資料を優先します。" : "Prioritize review papers, education studies, and policy-oriented sources."
+      paperStrategy: ja ? "レビュー論文、教育研究、政策資料を優先します。" : "Prioritize review papers, education studies, and policy-oriented sources.",
+      contentPointIds: contentPoints.slice(0, 5).map((point) => point.id)
     },
     {
       id: "plan-2",
@@ -77,7 +172,8 @@ export function fallbackThemeCandidates(topic: string, outputLanguage: "ja" | "e
       reason: ja ? "肯定・否定の両方の文献を使い、結論を作りやすい構成です。" : "Uses both supportive and critical literature to build a defensible position.",
       thesisHint: ja ? `利点を認めつつ、リスクを下げる条件を提案する。` : "Acknowledge benefits while proposing conditions that reduce risk.",
       outline: ja ? ["利点", "リスク", "比較基準", "自分の主張"] : ["Benefits", "Risks", "Comparison criteria", "Your position"],
-      paperStrategy: ja ? "実証研究、批判的研究、ガイドライン系文献を混ぜます。" : "Mix empirical studies, critical work, and guideline-style sources."
+      paperStrategy: ja ? "実証研究、批判的研究、ガイドライン系文献を混ぜます。" : "Mix empirical studies, critical work, and guideline-style sources.",
+      contentPointIds: contentPoints.slice(0, 6).map((point) => point.id)
     },
     {
       id: "plan-3",
@@ -88,7 +184,8 @@ export function fallbackThemeCandidates(topic: string, outputLanguage: "ja" | "e
       reason: ja ? "ユーザーの関心を反映し、独自性のある枠組みにできます。" : "Reflects the student's interest and creates a more original frame.",
       thesisHint: ja ? `${topic}を単独で扱わず、${related}との関係から考察する。` : `Analyze ${topic} through its relationship with ${related}.`,
       outline: ja ? ["関連づける理由", "両分野の先行研究", "接点の分析", "結論"] : ["Why connect them", "Prior work in both areas", "Point of connection", "Conclusion"],
-      paperStrategy: ja ? "2つのキーワード群を組み合わせ、分野横断の文献を探します。" : "Combine keyword groups to find cross-disciplinary sources."
+      paperStrategy: ja ? "2つのキーワード群を組み合わせ、分野横断の文献を探します。" : "Combine keyword groups to find cross-disciplinary sources.",
+      contentPointIds: contentPoints.filter((point) => point.type === "pdf" || point.type === "case" || point.type === "theory").slice(0, 6).map((point) => point.id)
     },
     {
       id: "plan-4",
@@ -99,7 +196,8 @@ export function fallbackThemeCandidates(topic: string, outputLanguage: "ja" | "e
       reason: ja ? "最後に具体的な提案を置けるため、レポートとしてまとまりやすいです。" : "Ends with concrete recommendations, which makes the paper easier to organize.",
       thesisHint: ja ? `先行研究に基づき、実行可能な対応策を提案する。` : "Use prior research to propose feasible responses.",
       outline: ja ? ["課題の特定", "既存の対応", "改善案", "限界"] : ["Problem", "Existing responses", "Recommendations", "Limitations"],
-      paperStrategy: ja ? "政策研究、大学実践、レビュー論文を重視します。" : "Prioritize policy research, institutional practice, and review papers."
+      paperStrategy: ja ? "政策研究、大学実践、レビュー論文を重視します。" : "Prioritize policy research, institutional practice, and review papers.",
+      contentPointIds: contentPoints.filter((point) => point.type === "policy" || point.type === "argument" || point.type === "counterargument").slice(0, 6).map((point) => point.id)
     }
   ].map((plan) => ({
     ...plan,
@@ -145,6 +243,7 @@ export function fallbackReportOutline(
   plan: ThemeCandidate,
   references: ReferenceItem[],
   pdfThemes: PdfTheme[],
+  contentPoints: ContentPoint[],
   outputLanguage: "ja" | "en"
 ): ReportOutline {
   const ja = outputLanguage === "ja";
@@ -154,12 +253,13 @@ export function fallbackReportOutline(
     title: plan.title,
     thesis: plan.thesisHint,
     selectedPdfThemes: pdfThemes.map((theme) => theme.id),
+    selectedContentPointIds: contentPoints.map((point) => point.id),
     selectedPaperIds: paperIds,
     sections: [
       {
         title: ja ? "1. 問題意識と背景" : "1. Problem and background",
         purpose: ja ? "テーマの背景とレポートで扱う範囲を示す。" : "Introduce the background and scope.",
-        keyPoints: [plan.researchQuestion, ...pdfThemes.slice(0, 1).map((theme) => theme.summary)],
+        keyPoints: [plan.researchQuestion, ...contentPoints.slice(0, 2).map((point) => point.description), ...pdfThemes.slice(0, 1).map((theme) => theme.summary)],
         paperIds: paperIds.slice(0, 2)
       },
       {

@@ -29,6 +29,22 @@ export type PdfInsightResult = {
   themes: PdfTheme[];
 };
 
+export type AssignmentDetails = {
+  assignmentPrompt: string;
+  userOpinion: string;
+  mustInclude: string;
+};
+
+export type ContentPoint = {
+  id: string;
+  title: string;
+  description: string;
+  type: "background" | "argument" | "case" | "theory" | "evidence" | "counterargument" | "policy" | "pdf" | "custom";
+  keywordsJa: string[];
+  keywordsEn: string[];
+  source: "ai" | "pdf" | "user";
+};
+
 export type ThemeCandidate = {
   id: string;
   title: string;
@@ -39,6 +55,7 @@ export type ThemeCandidate = {
   thesisHint: string;
   outline: string[];
   paperStrategy: string;
+  contentPointIds: string[];
 };
 
 export type ReferenceItem = {
@@ -81,6 +98,7 @@ export type ReportOutline = {
   thesis: string;
   sections: ReportSection[];
   selectedPdfThemes: string[];
+  selectedContentPointIds: string[];
   selectedPaperIds: string[];
   nextSteps: string[];
 };

@@ -34,6 +34,16 @@ const referenceSchema = z.object({
   verifiedMetadata: z.literal(true)
 });
 
+const contentPointSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  type: z.enum(["background", "argument", "case", "theory", "evidence", "counterargument", "policy", "pdf", "custom"]),
+  keywordsJa: z.array(z.string()),
+  keywordsEn: z.array(z.string()),
+  source: z.enum(["ai", "pdf", "user"])
+});
+
 const planSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -43,13 +53,15 @@ const planSchema = z.object({
   reason: z.string(),
   thesisHint: z.string(),
   outline: z.array(z.string()),
-  paperStrategy: z.string()
+  paperStrategy: z.string(),
+  contentPointIds: z.array(z.string()).default([])
 });
 
 const requestSchema = z.object({
   plan: planSchema,
   references: z.array(referenceSchema).min(1).max(8),
   pdfThemes: z.array(pdfThemeSchema).max(6).default([]),
+  contentPoints: z.array(contentPointSchema).max(12).default([]),
   outputLanguage: z.enum(["ja", "en"]).default("en")
 });
 
@@ -64,11 +76,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid outline request." }, { status: 400 });
   }
 
-  const { plan, references, pdfThemes, outputLanguage } = parsed.data;
-  const generated = await generateReportOutline(plan, references, pdfThemes, outputLanguage);
+  const { references, pdfThemes, contentPoints, outputLanguage } = parsed.data;
+  const plan = {
+    ...parsed.data.plan,
+    contentPointIds: parsed.data.plan.contentPointIds ?? []
+  };
+  const generated = await generateReportOutline(plan, references, pdfThemes, contentPoints, outputLanguage);
 
   return NextResponse.json({
-    outline: generated ?? fallbackReportOutline(plan, references, pdfThemes, outputLanguage),
+    outline: generated ?? fallbackReportOutline(plan, references, pdfThemes, contentPoints, outputLanguage),
     usedFallback: !generated
   });
 }

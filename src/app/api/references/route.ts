@@ -21,8 +21,9 @@ const candidateSchema = z.object({
   reason: z.string(),
   thesisHint: z.string(),
   outline: z.array(z.string()).min(1),
-  paperStrategy: z.string()
-}) satisfies z.ZodType<ThemeCandidate>;
+  paperStrategy: z.string(),
+  contentPointIds: z.array(z.string()).default([])
+});
 
 const requestSchema = z.object({
   candidate: candidateSchema,
@@ -60,7 +61,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid reference request." }, { status: 400 });
   }
 
-  const { candidate, outputLanguage } = parsed.data;
+  const { outputLanguage } = parsed.data;
+  const candidate = {
+    ...parsed.data.candidate,
+    contentPointIds: parsed.data.candidate.contentPointIds ?? []
+  } as ThemeCandidate;
   const language = resolveOutputLanguage(candidateText(candidate), outputLanguage);
   const { papers, warnings } = await searchAllProviders(candidate);
   const ranked = dedupeAndRank(papers, 40)
