@@ -3,10 +3,15 @@ import type {
   ContentPoint,
   InterviewAnswer,
   LibrarianQuestion,
+  PersonalizationCheck,
+  PersonalizationPoint,
   PdfInsightResult,
   PdfTheme,
+  ReportDraft,
+  ReportDraftOptions,
   ReferenceItem,
   ReportOutline,
+  RevisedReportDraft,
   ThemeCandidate
 } from "./types";
 
@@ -418,6 +423,179 @@ export async function generateReportOutline(
   ].join("\n");
 
   return generateStructured<ReportOutline>(prompt, schema);
+}
+
+export async function generateReportDraft(
+  plan: ThemeCandidate,
+  references: ReferenceItem[],
+  pdfThemes: PdfTheme[],
+  contentPoints: ContentPoint[],
+  outline: ReportOutline | null,
+  options: ReportDraftOptions,
+  outputLanguage: "ja" | "en"
+): Promise<ReportDraft | null> {
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["title", "draft", "wordCountEstimate", "languageLevel", "humanLike", "notes", "bibliography"],
+    properties: {
+      title: { type: "string" },
+      draft: { type: "string" },
+      wordCountEstimate: { type: "number" },
+      languageLevel: { type: "string", enum: ["high", "middle", "low"] },
+      humanLike: { type: "boolean" },
+      notes: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 5 },
+      bibliography: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 10 }
+    }
+  };
+
+  const safeReferences = references.map((reference) => ({
+    id: reference.id,
+    title: reference.title,
+    authors: reference.authors,
+    year: reference.year,
+    sourceName: reference.sourceName,
+    summary: reference.abstractOrMetadataSummary,
+    relevanceScore: reference.relevanceScore,
+    apa7: reference.apa7
+  }));
+
+  const prompt = [
+    "You are an academic librarian helping an undergraduate turn a plan into an editable report draft.",
+    "Write a draft that the student can revise, not a final submission. Add a note reminding the student to verify full texts and course rules.",
+    "Use only the selected verified papers for citations. Do not invent sources, page numbers, quotes, or findings.",
+    "Use in-text citations when a selected paper supports a claim, and include the APA 7 bibliography entries supplied by the system.",
+    "If a paper only has metadata summary, avoid detailed claims that would require reading the full paper.",
+    "Human-like means natural, readable academic prose; do not optimize for bypassing AI detection.",
+    `Output language: ${outputLanguage}.`,
+    `Target word count: ${options.targetWordCount}.`,
+    `Language level: ${options.languageLevel}. High = advanced academic, middle = clear undergraduate, low = simple and accessible.`,
+    `Natural human-like tone: ${options.humanLike}.`,
+    `Other conditions: ${options.otherConditions || "None"}`,
+    `Report plan JSON: ${JSON.stringify(plan)}`,
+    `Report outline JSON: ${JSON.stringify(outline)}`,
+    `Selected content points JSON: ${JSON.stringify(contentPoints)}`,
+    `Selected PDF themes JSON: ${JSON.stringify(pdfThemes)}`,
+    `Selected papers JSON: ${JSON.stringify(safeReferences)}`
+  ].join("\n");
+
+  return generateStructured<ReportDraft>(prompt, schema);
+}
+
+export async function generatePersonalizationCheck(
+  draft: ReportDraft,
+  plan: ThemeCandidate,
+  references: ReferenceItem[],
+  contentPoints: ContentPoint[],
+  outputLanguage: "ja" | "en"
+): Promise<PersonalizationCheck | null> {
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["summary", "points"],
+    properties: {
+      summary: { type: "string" },
+      points: {
+        type: "array",
+        minItems: 5,
+        maxItems: 8,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["id", "title", "issue", "suggestion", "category", "priority"],
+          properties: {
+            id: { type: "string" },
+            title: { type: "string" },
+            issue: { type: "string" },
+            suggestion: { type: "string" },
+            category: { type: "string", enum: ["opinion", "course", "evidence", "example", "counterargument", "structure", "clarity", "other"] },
+            priority: { type: "string", enum: ["high", "medium", "low"] }
+          }
+        }
+      }
+    }
+  };
+
+  const safeReferences = references.map((reference) => ({
+    id: reference.id,
+    title: reference.title,
+    authors: reference.authors,
+    year: reference.year,
+    summary: reference.abstractOrMetadataSummary,
+    apa7: reference.apa7
+  }));
+
+  const prompt = [
+    "You are an academic writing tutor and librarian.",
+    "Review the report draft to help the student make it more genuinely their own work.",
+    "Do not judge whether it is AI-written and do not provide advice for bypassing AI detection.",
+    "Focus on adding the student's opinion, course context, concrete examples, careful use of selected papers, counterarguments, and clearer structure.",
+    "Return selectable improvement points. Each point should be concrete enough that the student can choose it before revision.",
+    `Output language: ${outputLanguage}.`,
+    `Report plan JSON: ${JSON.stringify(plan)}`,
+    `Selected content points JSON: ${JSON.stringify(contentPoints)}`,
+    `Selected papers JSON: ${JSON.stringify(safeReferences)}`,
+    `Draft JSON: ${JSON.stringify(draft)}`
+  ].join("\n");
+
+  return generateStructured<PersonalizationCheck>(prompt, schema);
+}
+
+export async function generateRevisedReportDraft(
+  draft: ReportDraft,
+  plan: ThemeCandidate,
+  references: ReferenceItem[],
+  contentPoints: ContentPoint[],
+  selectedImprovements: PersonalizationPoint[],
+  customImprovements: string[],
+  options: ReportDraftOptions,
+  outputLanguage: "ja" | "en"
+): Promise<RevisedReportDraft | null> {
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["title", "draft", "wordCountEstimate", "languageLevel", "humanLike", "notes", "bibliography", "appliedImprovementIds", "customImprovements"],
+    properties: {
+      title: { type: "string" },
+      draft: { type: "string" },
+      wordCountEstimate: { type: "number" },
+      languageLevel: { type: "string", enum: ["high", "middle", "low"] },
+      humanLike: { type: "boolean" },
+      notes: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 5 },
+      bibliography: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 10 },
+      appliedImprovementIds: { type: "array", items: { type: "string" } },
+      customImprovements: { type: "array", items: { type: "string" } }
+    }
+  };
+
+  const safeReferences = references.map((reference) => ({
+    id: reference.id,
+    title: reference.title,
+    authors: reference.authors,
+    year: reference.year,
+    summary: reference.abstractOrMetadataSummary,
+    apa7: reference.apa7
+  }));
+
+  const prompt = [
+    "You are an academic writing tutor and librarian.",
+    "Revise the draft according to the selected improvements so it better reflects the student's own argument, course context, evidence choices, examples, and limitations.",
+    "Do not provide or optimize for AI-detection evasion. Keep the goal as better academic authorship and revision.",
+    "Use only the selected verified papers. Do not invent sources, page numbers, direct quotes, or findings.",
+    "If a source only has metadata, avoid detailed claims that require full-text reading.",
+    `Output language: ${outputLanguage}.`,
+    `Target word count: ${options.targetWordCount}.`,
+    `Language level: ${options.languageLevel}.`,
+    `Other conditions: ${options.otherConditions || "None"}`,
+    `Report plan JSON: ${JSON.stringify(plan)}`,
+    `Selected content points JSON: ${JSON.stringify(contentPoints)}`,
+    `Selected papers JSON: ${JSON.stringify(safeReferences)}`,
+    `Selected improvements JSON: ${JSON.stringify(selectedImprovements)}`,
+    `Other custom improvements JSON: ${JSON.stringify(customImprovements)}`,
+    `Original draft JSON: ${JSON.stringify(draft)}`
+  ].join("\n");
+
+  return generateStructured<RevisedReportDraft>(prompt, schema);
 }
 
 export async function enrichReferences(

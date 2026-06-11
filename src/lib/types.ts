@@ -103,6 +103,42 @@ export type ReportOutline = {
   nextSteps: string[];
 };
 
+export type ReportDraftOptions = {
+  targetWordCount: number;
+  languageLevel: "high" | "middle" | "low";
+  humanLike: boolean;
+  otherConditions: string;
+};
+
+export type ReportDraft = {
+  title: string;
+  draft: string;
+  wordCountEstimate: number;
+  languageLevel: "high" | "middle" | "low";
+  humanLike: boolean;
+  notes: string[];
+  bibliography: string[];
+};
+
+export type PersonalizationPoint = {
+  id: string;
+  title: string;
+  issue: string;
+  suggestion: string;
+  category: "opinion" | "course" | "evidence" | "example" | "counterargument" | "structure" | "clarity" | "other";
+  priority: "high" | "medium" | "low";
+};
+
+export type PersonalizationCheck = {
+  summary: string;
+  points: PersonalizationPoint[];
+};
+
+export type RevisedReportDraft = ReportDraft & {
+  appliedImprovementIds: string[];
+  customImprovements: string[];
+};
+
 export type ProviderPaper = {
   title: string;
   authors: string[];

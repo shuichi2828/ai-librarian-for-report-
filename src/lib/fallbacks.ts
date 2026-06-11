@@ -3,10 +3,15 @@ import type {
   ContentPoint,
   InterviewAnswer,
   LibrarianQuestion,
+  PersonalizationCheck,
+  PersonalizationPoint,
   PdfInsightResult,
   PdfTheme,
+  ReportDraft,
+  ReportDraftOptions,
   ReferenceItem,
   ReportOutline,
+  RevisedReportDraft,
   ThemeCandidate
 } from "./types";
 
@@ -284,6 +289,232 @@ export function fallbackReportOutline(
     nextSteps: ja
       ? ["選択論文の本文または抄録を確認する", "引用形式を授業指定に合わせる", "反対意見を補う論文を1本追加する"]
       : ["Check the abstracts or full text of selected papers", "Adjust citation style to course requirements", "Add one paper with a contrasting view"]
+  };
+}
+
+export function fallbackReportDraft(
+  plan: ThemeCandidate,
+  references: ReferenceItem[],
+  pdfThemes: PdfTheme[],
+  contentPoints: ContentPoint[],
+  outline: ReportOutline | null,
+  options: ReportDraftOptions,
+  outputLanguage: "ja" | "en"
+): ReportDraft {
+  const ja = outputLanguage === "ja";
+  const bibliography = references.map((reference) => reference.apa7);
+  const sections = outline?.sections.length
+    ? outline.sections
+    : [
+        {
+          title: ja ? "Introduction" : "Introduction",
+          purpose: plan.researchQuestion,
+          keyPoints: [plan.thesisHint],
+          paperIds: references.slice(0, 2).map((reference) => reference.id)
+        },
+        {
+          title: ja ? "Literature review" : "Literature review",
+          purpose: ja ? "Selected papers are organized around the main argument." : "Selected papers are organized around the main argument.",
+          keyPoints: references.slice(0, 3).map((reference) => reference.abstractOrMetadataSummary),
+          paperIds: references.slice(0, 3).map((reference) => reference.id)
+        },
+        {
+          title: ja ? "Discussion" : "Discussion",
+          purpose: plan.thesisHint,
+          keyPoints: contentPoints.slice(0, 4).map((point) => point.description),
+          paperIds: references.slice(2, 6).map((reference) => reference.id)
+        }
+      ];
+
+  const referenceLine = references
+    .slice(0, 4)
+    .map((reference) => `${reference.authors[0] ?? reference.title} (${reference.year ?? "n.d."})`)
+    .join(", ");
+  const contentLine = contentPoints
+    .slice(0, 5)
+    .map((point) => point.title)
+    .join(", ");
+  const pdfLine = pdfThemes
+    .slice(0, 3)
+    .map((theme) => theme.title)
+    .join(", ");
+
+  const draft = ja
+    ? [
+        `${plan.title}`,
+        "",
+        `この下書きは「${plan.researchQuestion}」という問いに答えるための出発点である。中心的な主張は、${plan.thesisHint} という方向で整理できる。まず、背景として ${contentLine || plan.title} を確認し、問題がなぜ大学生のレポートテーマとして重要なのかを説明する。`,
+        "",
+        `先行研究の整理では、${referenceLine || "選択した論文"} を手がかりに、議論の流れをまとめる。ここでは、各論文の抄録またはメタデータに基づいて、どの研究が背景説明、どの研究が根拠、どの研究が反論や限界の検討に使えるかを分けて考える必要がある。`,
+        "",
+        sections
+          .map((section) => `${section.title}: ${section.purpose} ${section.keyPoints.join(" ")}`)
+          .join("\n\n"),
+        "",
+        pdfLine ? `アップロードしたPDFからは、${pdfLine} という観点も組み込める。これらはレポートの独自性を高める材料になるが、本文で使う場合はPDF内の該当箇所を再確認する必要がある。` : "",
+        "",
+        `結論では、研究問いに対する暫定的な答えを示し、選択した論文から言えることと言えないことを区別する。特に、メタデータだけで確認した文献については、本文を読んだかのような断定を避け、今後確認すべき課題として扱う。`
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : [
+        `${plan.title}`,
+        "",
+        `This draft starts from the question: ${plan.researchQuestion}. The central claim can be developed as follows: ${plan.thesisHint}. The introduction should first explain ${contentLine || plan.title} and show why the topic matters for an undergraduate report.`,
+        "",
+        `The literature review can use ${referenceLine || "the selected papers"} to organize the existing discussion. Based on the available abstracts or metadata, the student should separate papers that provide background, papers that support the argument, and papers that complicate or limit the argument.`,
+        "",
+        sections
+          .map((section) => `${section.title}: ${section.purpose} ${section.keyPoints.join(" ")}`)
+          .join("\n\n"),
+        "",
+        pdfLine ? `The uploaded PDF also suggests these useful elements: ${pdfLine}. They can make the report more specific, but the student should recheck the relevant PDF passages before using them as evidence.` : "",
+        "",
+        "The conclusion should answer the research question while distinguishing between what the selected papers clearly support and what still needs further checking. For metadata-only sources, the draft should avoid claims that sound as if the full text has been read."
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+  return {
+    title: plan.title,
+    draft,
+    wordCountEstimate: draft.split(/\s+/).filter(Boolean).length,
+    languageLevel: options.languageLevel,
+    humanLike: options.humanLike,
+    notes: ja
+      ? [
+          "これは編集用の下書きです。授業のルールに合わせて自分の言葉で直してください。",
+          "本文で使う前に、選んだ論文の抄録または本文を確認してください。",
+          `${options.targetWordCount}語前後に近づけるには、各段落の説明量を調整してください。`
+        ]
+      : [
+          "This is an editable draft. Revise it in your own voice and follow course rules.",
+          "Check the abstract or full text before using a selected paper as evidence.",
+          `Adjust paragraph length to approach about ${options.targetWordCount} words.`
+        ],
+    bibliography
+  };
+}
+
+export function fallbackPersonalizationCheck(
+  draft: ReportDraft,
+  plan: ThemeCandidate,
+  references: ReferenceItem[],
+  contentPoints: ContentPoint[],
+  outputLanguage: "ja" | "en"
+): PersonalizationCheck {
+  const ja = outputLanguage === "ja";
+  const hasReferences = references.length > 0;
+  const points: PersonalizationPoint[] = [
+    {
+      id: "improve-opinion",
+      title: ja ? "自分の立場を1段落で明確にする" : "Make your own position explicit",
+      issue: ja ? "下書きは全体像を説明していますが、あなた自身がどの立場を取るのかがまだ弱い可能性があります。" : "The draft explains the topic, but your own position may still be too implicit.",
+      suggestion: ja ? "序論または結論に、賛成・反対・条件付き賛成などの立場と理由を1段落追加します。" : "Add one paragraph in the introduction or conclusion that states your position and why you hold it.",
+      category: "opinion",
+      priority: "high"
+    },
+    {
+      id: "improve-course",
+      title: ja ? "授業内容や課題文との接続を足す" : "Connect the report to the course or assignment",
+      issue: ja ? "授業で扱った概念や課題文の条件とのつながりが薄いと、一般論に見えやすくなります。" : "Without course concepts or assignment constraints, the draft can feel too general.",
+      suggestion: ja ? "課題文のキーワード、授業で扱った概念、先生が強調した論点を具体的に入れます。" : "Add keywords from the assignment, course concepts, or issues emphasized by the instructor.",
+      category: "course",
+      priority: "high"
+    },
+    {
+      id: "improve-evidence",
+      title: ja ? "選んだ論文をどこで使うか明確にする" : "Clarify how selected papers support each claim",
+      issue: hasReferences
+        ? ja
+          ? "文献は入っていますが、どの主張をどの論文が支えるのかをより明確にできます。"
+          : "Papers are included, but the link between each source and each claim can be clearer."
+        : ja
+          ? "選択論文がないため、根拠の位置づけが弱くなります。"
+          : "Without selected papers, the evidence structure is weak.",
+      suggestion: ja ? "各本文段落に、対応する論文とその論文が支える点を1文で追加します。" : "Add one sentence per body paragraph explaining which paper supports which point.",
+      category: "evidence",
+      priority: "high"
+    },
+    {
+      id: "improve-example",
+      title: ja ? "具体例を追加する" : "Add a concrete example",
+      issue: ja ? "抽象的な説明が続くと、レポートの場面設定が見えにくくなります。" : "When the prose stays abstract, the reader cannot easily picture the situation.",
+      suggestion: ja ? "大学の授業、課題、学生の行動、制度、ニュースなどの具体例を1つ入れます。" : "Add one concrete example from a class, assignment, student behavior, policy, or news case.",
+      category: "example",
+      priority: "medium"
+    },
+    {
+      id: "improve-counterargument",
+      title: ja ? "反論や限界を厚くする" : "Strengthen counterarguments and limitations",
+      issue: ja ? "主張が一方向に進みすぎると、考察が浅く見えることがあります。" : "If the argument moves in only one direction, the discussion can feel shallow.",
+      suggestion: ja ? "反対意見、例外、選んだ文献だけでは言えないことを1段落追加します。" : "Add a paragraph on objections, exceptions, or what the selected sources cannot prove.",
+      category: "counterargument",
+      priority: "medium"
+    },
+    {
+      id: "improve-structure",
+      title: ja ? "段落の役割を整理する" : "Make paragraph roles clearer",
+      issue: ja ? "背景、先行研究、自分の主張、結論の役割が混ざると読みづらくなります。" : "The report is harder to follow if background, literature, your claim, and conclusion blur together.",
+      suggestion: ja ? "各段落の最初に、その段落が何をするのかを示す文を置きます。" : "Start each paragraph with a sentence that states what the paragraph is doing.",
+      category: "structure",
+      priority: "medium"
+    }
+  ];
+
+  return {
+    summary: ja
+      ? `「${plan.title}」の下書きを、自分の意見・授業との接続・根拠の使い方を強める方向で改善できます。`
+      : `The draft for "${plan.title}" can be improved by strengthening your own position, course connection, and use of evidence.`,
+    points: points.slice(0, Math.max(5, Math.min(8, points.length + contentPoints.length - contentPoints.length)))
+  };
+}
+
+export function fallbackRevisedReportDraft(
+  draft: ReportDraft,
+  references: ReferenceItem[],
+  selectedImprovements: PersonalizationPoint[],
+  customImprovements: string[],
+  options: ReportDraftOptions,
+  outputLanguage: "ja" | "en"
+): RevisedReportDraft {
+  const ja = outputLanguage === "ja";
+  const improvementText = selectedImprovements.map((item) => `${item.title}: ${item.suggestion}`).join("\n");
+  const customText = customImprovements.join("\n");
+  const addendum = ja
+    ? [
+        "",
+        "Revision notes to personalize this draft:",
+        improvementText,
+        customText ? `Other requested improvements:\n${customText}` : "",
+        "Revise these notes into your own words, especially by adding course concepts, your judgment, and checked evidence from the selected papers."
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : [
+        "",
+        "Revision notes to make this draft your own:",
+        improvementText,
+        customText ? `Other requested improvements:\n${customText}` : "",
+        "Turn these notes into your own wording, especially by adding course concepts, your judgment, and evidence you have checked in the selected papers."
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+  const revisedText = `${draft.draft}\n${addendum}`;
+
+  return {
+    ...draft,
+    draft: revisedText,
+    wordCountEstimate: revisedText.split(/\s+/).filter(Boolean).length,
+    languageLevel: options.languageLevel,
+    humanLike: options.humanLike,
+    bibliography: draft.bibliography.length ? draft.bibliography : references.map((reference) => reference.apa7),
+    notes: ja
+      ? ["選んだ改善点を末尾に反映しました。本文に組み込む時は、自分の経験・授業内容・確認済み文献に合わせて書き直してください。", "論文の本文や抄録を確認してから根拠として使ってください。"]
+      : ["Selected improvements were added as revision guidance. Integrate them into the body using your own course context, judgment, and checked sources.", "Check abstracts or full texts before using papers as evidence."],
+    appliedImprovementIds: selectedImprovements.map((item) => item.id),
+    customImprovements
   };
 }
 

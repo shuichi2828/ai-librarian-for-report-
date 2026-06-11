@@ -12,6 +12,7 @@ import {
   Loader2,
   LogOut,
   MessageSquareText,
+  PenLine,
   RefreshCcw,
   Search,
   Trash2,
@@ -24,10 +25,15 @@ import type {
   ContentPoint,
   InterviewAnswer,
   OutputLanguage,
+  PersonalizationCheck,
+  PersonalizationPoint,
   PdfInsightResult,
   ReferenceItem,
   ReferenceSearchResult,
+  ReportDraft,
+  ReportDraftOptions,
   ReportOutline,
+  RevisedReportDraft,
   ThemeCandidate
 } from "@/lib/types";
 
@@ -51,6 +57,21 @@ type PdfResponse = PdfInsightResult & {
 
 type OutlineResponse = {
   outline: ReportOutline;
+  usedFallback: boolean;
+};
+
+type DraftResponse = {
+  draft: ReportDraft;
+  usedFallback: boolean;
+};
+
+type PersonalizationResponse = {
+  check: PersonalizationCheck;
+  usedFallback: boolean;
+};
+
+type RevisionResponse = {
+  draft: RevisedReportDraft;
   usedFallback: boolean;
 };
 
@@ -106,12 +127,23 @@ export default function Home() {
   const [references, setReferences] = useState<ReferenceItem[]>([]);
   const [selectedReferenceIds, setSelectedReferenceIds] = useState<string[]>([]);
   const [reportOutline, setReportOutline] = useState<ReportOutline | null>(null);
+  const [draftOptions, setDraftOptions] = useState<ReportDraftOptions>({
+    targetWordCount: 1200,
+    languageLevel: "middle",
+    humanLike: true,
+    otherConditions: ""
+  });
+  const [reportDraft, setReportDraft] = useState<ReportDraft | null>(null);
+  const [personalizationCheck, setPersonalizationCheck] = useState<PersonalizationCheck | null>(null);
+  const [selectedImprovementIds, setSelectedImprovementIds] = useState<string[]>([]);
+  const [otherImprovement, setOtherImprovement] = useState("");
+  const [revisedDraft, setRevisedDraft] = useState<RevisedReportDraft | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [alternatives, setAlternatives] = useState<string[]>([]);
   const [refinements, setRefinements] = useState<string[]>([]);
   const [totalReviewed, setTotalReviewed] = useState<number>();
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [status, setStatus] = useState<"idle" | "points" | "pdf" | "plans" | "references" | "outline">("idle");
+  const [status, setStatus] = useState<"idle" | "points" | "pdf" | "plans" | "references" | "outline" | "draft" | "personalization" | "revision">("idle");
   const [error, setError] = useState<string>();
 
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedPlanId), [plans, selectedPlanId]);
@@ -162,8 +194,20 @@ export default function Home() {
     setPlans([]);
     setReferences([]);
     setReportOutline(null);
+    setReportDraft(null);
+    setPersonalizationCheck(null);
+    setSelectedImprovementIds([]);
+    setOtherImprovement("");
+    setRevisedDraft(null);
     setError(undefined);
     window.localStorage.removeItem(USER_KEY);
+  }
+
+  function clearRevisionFlow() {
+    setPersonalizationCheck(null);
+    setSelectedImprovementIds([]);
+    setOtherImprovement("");
+    setRevisedDraft(null);
   }
 
   function selectedPdfThemes() {
@@ -212,6 +256,8 @@ export default function Home() {
     setReferences([]);
     setSelectedReferenceIds([]);
     setReportOutline(null);
+    setReportDraft(null);
+    clearRevisionFlow();
     setWarnings([]);
 
     try {
@@ -245,6 +291,8 @@ export default function Home() {
     setReferences([]);
     setSelectedReferenceIds([]);
     setReportOutline(null);
+    setReportDraft(null);
+    clearRevisionFlow();
     setWarnings([]);
 
     try {
@@ -279,6 +327,8 @@ export default function Home() {
     setReferences([]);
     setSelectedReferenceIds([]);
     setReportOutline(null);
+    setReportDraft(null);
+    clearRevisionFlow();
     setWarnings([]);
     setAlternatives([]);
     setRefinements([]);
@@ -296,6 +346,8 @@ export default function Home() {
       const result = (await response.json()) as ReferenceSearchResult;
       setReferences(result.references);
       setSelectedReferenceIds(result.references.slice(0, 4).map((reference) => reference.id));
+      setReportDraft(null);
+      clearRevisionFlow();
       setWarnings(result.warnings);
       setAlternatives(result.alternativeKeywords);
       setRefinements(result.refinementSuggestions);
@@ -386,8 +438,157 @@ export default function Home() {
 
       const result = (await response.json()) as OutlineResponse;
       setReportOutline(result.outline);
+      setReportDraft(null);
+      clearRevisionFlow();
     } catch {
       setError("Could not create the report outline.");
+    } finally {
+      setStatus("idle");
+    }
+  }
+
+  async function createDraft() {
+    if (!selectedPlan) {
+      setError("Please choose a report plan first.");
+      return;
+    }
+
+    const selectedReferences = references.filter((reference) => selectedReferenceIds.includes(reference.id));
+    if (selectedReferences.length === 0) {
+      setError("Please select at least one paper to include.");
+      return;
+    }
+
+    setStatus("draft");
+    setError(undefined);
+
+    try {
+      const response = await fetch("/api/report-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan: selectedPlan,
+          references: selectedReferences,
+          pdfThemes: selectedPdfThemes(),
+          contentPoints: selectedContentPoints(),
+          outline: reportOutline,
+          options: draftOptions,
+          outputLanguage: outputLanguage === "ja" ? "ja" : "en"
+        })
+      });
+
+      if (!response.ok) throw new Error("draft");
+
+      const result = (await response.json()) as DraftResponse;
+      setReportDraft(result.draft);
+      clearRevisionFlow();
+    } catch {
+      setError("Could not create the report draft.");
+    } finally {
+      setStatus("idle");
+    }
+  }
+
+  async function checkPersonalization() {
+    if (!selectedPlan || !reportDraft) {
+      setError("Please create a report draft first.");
+      return;
+    }
+
+    const selectedReferences = references.filter((reference) => selectedReferenceIds.includes(reference.id));
+    if (selectedReferences.length === 0) {
+      setError("Please select at least one paper to include.");
+      return;
+    }
+
+    setStatus("personalization");
+    setError(undefined);
+    setRevisedDraft(null);
+
+    try {
+      const response = await fetch("/api/personalization-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          draft: reportDraft,
+          plan: selectedPlan,
+          references: selectedReferences,
+          contentPoints: selectedContentPoints(),
+          outputLanguage: outputLanguage === "ja" ? "ja" : "en"
+        })
+      });
+
+      if (!response.ok) throw new Error("personalization");
+
+      const result = (await response.json()) as PersonalizationResponse;
+      setPersonalizationCheck(result.check);
+      setSelectedImprovementIds(result.check.points.filter((point) => point.priority === "high").map((point) => point.id));
+    } catch {
+      setError("Could not check the draft.");
+    } finally {
+      setStatus("idle");
+    }
+  }
+
+  async function createRevision() {
+    if (!selectedPlan || !reportDraft || !personalizationCheck) {
+      setError("Please run the personalization check first.");
+      return;
+    }
+
+    const selectedReferences = references.filter((reference) => selectedReferenceIds.includes(reference.id));
+    const selectedImprovements = personalizationCheck.points.filter((point) => selectedImprovementIds.includes(point.id));
+    const customImprovements = otherImprovement
+      .split(/\n+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    const improvementsForRequest: PersonalizationPoint[] =
+      selectedImprovements.length > 0
+        ? selectedImprovements
+        : customImprovements.length > 0
+          ? [
+              {
+                id: "other-improvement",
+                title: "Other",
+                issue: "The student provided a custom revision request.",
+                suggestion: customImprovements.join(" / "),
+                category: "other",
+                priority: "medium"
+              }
+            ]
+          : [];
+
+    if (improvementsForRequest.length === 0) {
+      setError("Please select at least one improvement or write an Other improvement.");
+      return;
+    }
+
+    setStatus("revision");
+    setError(undefined);
+
+    try {
+      const response = await fetch("/api/report-revision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          draft: reportDraft,
+          plan: selectedPlan,
+          references: selectedReferences,
+          contentPoints: selectedContentPoints(),
+          selectedImprovements: improvementsForRequest,
+          customImprovements,
+          options: draftOptions,
+          outputLanguage: outputLanguage === "ja" ? "ja" : "en"
+        })
+      });
+
+      if (!response.ok) throw new Error("revision");
+
+      const result = (await response.json()) as RevisionResponse;
+      setRevisedDraft(result.draft);
+    } catch {
+      setError("Could not revise the report draft.");
     } finally {
       setStatus("idle");
     }
@@ -402,6 +603,8 @@ export default function Home() {
     setWarnings([]);
     setAlternatives([]);
     setRefinements([]);
+    setReportDraft(null);
+    clearRevisionFlow();
     setError(undefined);
   }
 
@@ -415,6 +618,13 @@ export default function Home() {
 
   function toggleReference(referenceId: string) {
     setSelectedReferenceIds((current) => (current.includes(referenceId) ? current.filter((id) => id !== referenceId) : [...current, referenceId]));
+    setReportDraft(null);
+    clearRevisionFlow();
+  }
+
+  function toggleImprovement(improvementId: string) {
+    setSelectedImprovementIds((current) => (current.includes(improvementId) ? current.filter((id) => id !== improvementId) : [...current, improvementId]));
+    setRevisedDraft(null);
   }
 
   function addCustomContentPoint() {
@@ -724,7 +934,7 @@ export default function Home() {
                   <h3>{reference.title}</h3>
                   <label className="paperSelect">
                     <input type="checkbox" checked={selectedReferenceIds.includes(reference.id)} onChange={() => toggleReference(reference.id)} />
-                    Include this paper in the outline
+                    Include this paper
                   </label>
                   <p className="authors">{reference.authors.join(", ")}</p>
                   <p>{reference.abstractOrMetadataSummary}</p>
@@ -748,7 +958,7 @@ export default function Home() {
           <section className="outlinePane" aria-label="Report outline">
             <div className="sectionHeader">
               <ListChecks size={18} />
-              <h2>5. Build outline with selected papers</h2>
+              <h2>5. Build outline and optional draft</h2>
               <span className="selectedChip">{selectedReferenceIds.length} papers selected</span>
             </div>
             <button className="primaryButton" type="button" onClick={createOutline} disabled={busy || selectedReferenceIds.length === 0}>
@@ -778,6 +988,155 @@ export default function Home() {
                 </div>
               </article>
             )}
+            <div className="draftBox">
+              <div className="sectionHeader compactHeader">
+                <PenLine size={18} />
+                <h3>Optional report draft</h3>
+              </div>
+              <div className="draftControls">
+                <label>
+                  <span>Word count</span>
+                  <input
+                    type="number"
+                    min={300}
+                    max={5000}
+                    step={100}
+                    value={draftOptions.targetWordCount}
+                    onChange={(event) => setDraftOptions({ ...draftOptions, targetWordCount: Number(event.target.value) || 1200 })}
+                  />
+                </label>
+                <label>
+                  <span>Language level</span>
+                  <select value={draftOptions.languageLevel} onChange={(event) => setDraftOptions({ ...draftOptions, languageLevel: event.target.value as ReportDraftOptions["languageLevel"] })}>
+                    <option value="high">High</option>
+                    <option value="middle">Middle</option>
+                    <option value="low">Low</option>
+                  </select>
+                </label>
+                <label className="inlineToggle draftToggle">
+                  <input type="checkbox" checked={draftOptions.humanLike} onChange={(event) => setDraftOptions({ ...draftOptions, humanLike: event.target.checked })} />
+                  Natural, human-like tone
+                </label>
+                <label className="wideCondition">
+                  <span>Other conditions</span>
+                  <textarea
+                    value={draftOptions.otherConditions}
+                    onChange={(event) => setDraftOptions({ ...draftOptions, otherConditions: event.target.value })}
+                    placeholder="Example: include a counterargument, avoid first person, use short paragraphs"
+                    rows={3}
+                  />
+                </label>
+              </div>
+              <button className="primaryButton" type="button" onClick={createDraft} disabled={busy || selectedReferenceIds.length === 0}>
+                {status === "draft" ? <Loader2 size={18} className="spin" /> : <PenLine size={18} />}
+                Write report draft
+              </button>
+              {reportDraft && (
+                <article className="draftResult">
+                  <div className="draftTopline">
+                    <div>
+                      <h3>{reportDraft.title}</h3>
+                      <small>
+                        About {reportDraft.wordCountEstimate} words / {reportDraft.languageLevel}
+                      </small>
+                    </div>
+                    <button
+                      className="iconButton"
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText([reportDraft.title, reportDraft.draft, "References", ...reportDraft.bibliography].join("\n\n"))}
+                      aria-label="Copy report draft"
+                      title="Copy report draft"
+                    >
+                      <Clipboard size={16} />
+                    </button>
+                  </div>
+                  <pre>{reportDraft.draft}</pre>
+                  <div className="notice">
+                    {reportDraft.notes.map((note) => (
+                      <p key={note}>{note}</p>
+                    ))}
+                  </div>
+                  <h4>References</h4>
+                  {reportDraft.bibliography.map((item) => (
+                    <code key={item}>{item}</code>
+                  ))}
+                  <div className="personalizationBox">
+                    <div className="sectionHeader compactHeader">
+                      <ListChecks size={18} />
+                      <h3>Make it your own</h3>
+                    </div>
+                    <button className="secondaryButton" type="button" onClick={checkPersonalization} disabled={busy}>
+                      {status === "personalization" ? <Loader2 size={18} className="spin" /> : <CheckCircle2 size={18} />}
+                      Check improvement points
+                    </button>
+                    {personalizationCheck && (
+                      <div className="improvementPanel">
+                        <p>{personalizationCheck.summary}</p>
+                        <div className="improvementGrid">
+                          {personalizationCheck.points.map((point) => (
+                            <label className={selectedImprovementIds.includes(point.id) ? "selectCard selected" : "selectCard"} key={point.id}>
+                              <input type="checkbox" checked={selectedImprovementIds.includes(point.id)} onChange={() => toggleImprovement(point.id)} />
+                              <span>{point.title}</span>
+                              <small>{point.issue}</small>
+                              <em>
+                                {point.priority} / {point.category}: {point.suggestion}
+                              </em>
+                            </label>
+                          ))}
+                        </div>
+                        <label className="otherImprovement">
+                          <span>Others</span>
+                          <textarea
+                            value={otherImprovement}
+                            onChange={(event) => {
+                              setOtherImprovement(event.target.value);
+                              setRevisedDraft(null);
+                            }}
+                            placeholder="Write anything else you want the revision to include. One idea per line is okay."
+                            rows={3}
+                          />
+                        </label>
+                        <button className="primaryButton" type="button" onClick={createRevision} disabled={busy}>
+                          {status === "revision" ? <Loader2 size={18} className="spin" /> : <PenLine size={18} />}
+                          Create revised draft
+                        </button>
+                      </div>
+                    )}
+                    {revisedDraft && (
+                      <article className="revisedResult">
+                        <div className="draftTopline">
+                          <div>
+                            <h3>Revised: {revisedDraft.title}</h3>
+                            <small>
+                              About {revisedDraft.wordCountEstimate} words / applied {revisedDraft.appliedImprovementIds.length} improvements
+                            </small>
+                          </div>
+                          <button
+                            className="iconButton"
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText([revisedDraft.title, revisedDraft.draft, "References", ...revisedDraft.bibliography].join("\n\n"))}
+                            aria-label="Copy revised report draft"
+                            title="Copy revised report draft"
+                          >
+                            <Clipboard size={16} />
+                          </button>
+                        </div>
+                        <pre>{revisedDraft.draft}</pre>
+                        <div className="notice">
+                          {revisedDraft.notes.map((note) => (
+                            <p key={note}>{note}</p>
+                          ))}
+                        </div>
+                        <h4>References</h4>
+                        {revisedDraft.bibliography.map((item) => (
+                          <code key={item}>{item}</code>
+                        ))}
+                      </article>
+                    )}
+                  </div>
+                </article>
+              )}
+            </div>
           </section>
         )}
       </section>
