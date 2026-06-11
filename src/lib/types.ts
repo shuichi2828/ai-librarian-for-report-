@@ -33,6 +33,34 @@ export type AssignmentDetails = {
   assignmentPrompt: string;
   userOpinion: string;
   mustInclude: string;
+  reportPreferences: string[];
+  materialNotes: string;
+};
+
+export type MaterialQuestion = {
+  id: string;
+  type: "choice" | "text";
+  label: string;
+  helpText: string;
+  options: string[];
+};
+
+export type MaterialSuggestion = {
+  id: string;
+  title: string;
+  description: string;
+  preferenceFit: string;
+  keywordsJa: string[];
+  keywordsEn: string[];
+};
+
+export type MaterialQualityCheck = {
+  score: number;
+  verdict: string;
+  weaknesses: string[];
+  questions: MaterialQuestion[];
+  suggestions: MaterialSuggestion[];
+  recommendedPreferences: string[];
 };
 
 export type ContentPoint = {

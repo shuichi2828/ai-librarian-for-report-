@@ -3,6 +3,7 @@ import type {
   ContentPoint,
   InterviewAnswer,
   LibrarianQuestion,
+  MaterialQualityCheck,
   PersonalizationCheck,
   PersonalizationPoint,
   PdfInsightResult,
@@ -299,7 +300,8 @@ export async function generateContentPoints(
   const prompt = [
     "You are an academic librarian helping an undergraduate decide what content to include in a report.",
     "Return 8 to 12 selectable content points. They should be concrete enough to become sections, arguments, evidence, counterarguments, cases, or policy points.",
-    "Use the assignment prompt, student's tentative opinion, must-include points, and PDF themes when available.",
+    "Use the assignment prompt, student's tentative opinion, must-include points, report preferences, material notes, and PDF themes when available.",
+    "Respect report preferences such as personal experience, paper citations, objective facts, course content, comparison, policy, and critical discussion.",
     "Include points that support the student's view and at least one point that complicates or challenges it.",
     `Output language for title and description: ${outputLanguage}.`,
     `Research topic: ${topic}`,
@@ -311,12 +313,84 @@ export async function generateContentPoints(
   return result?.points ?? null;
 }
 
+export async function generateMaterialQualityCheck(
+  topic: string,
+  details: AssignmentDetails,
+  pdfThemes: PdfTheme[],
+  outputLanguage: "ja" | "en"
+): Promise<MaterialQualityCheck | null> {
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["score", "verdict", "weaknesses", "questions", "suggestions", "recommendedPreferences"],
+    properties: {
+      score: { type: "number" },
+      verdict: { type: "string" },
+      weaknesses: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 6 },
+      questions: {
+        type: "array",
+        minItems: 3,
+        maxItems: 5,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["id", "type", "label", "helpText", "options"],
+          properties: {
+            id: { type: "string" },
+            type: { type: "string", enum: ["choice", "text"] },
+            label: { type: "string" },
+            helpText: { type: "string" },
+            options: { type: "array", items: { type: "string" }, minItems: 0, maxItems: 6 }
+          }
+        }
+      },
+      suggestions: {
+        type: "array",
+        minItems: 4,
+        maxItems: 7,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["id", "title", "description", "preferenceFit", "keywordsJa", "keywordsEn"],
+          properties: {
+            id: { type: "string" },
+            title: { type: "string" },
+            description: { type: "string" },
+            preferenceFit: { type: "string" },
+            keywordsJa: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 6 },
+            keywordsEn: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 6 }
+          }
+        }
+      },
+      recommendedPreferences: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 5 }
+    }
+  };
+
+  const prompt = [
+    "You are an academic librarian checking whether a student's initial report material is concrete enough to generate strong report plans.",
+    "Give a material strength score from 0 to 100. Higher means the material is specific enough for focused plans and paper search.",
+    "Ask short follow-up questions only where the material is vague.",
+    "Suggest selectable material additions that would make the plan more specific.",
+    "Include report preference guidance. Preferences may include personal experience, paper citation focus, objective facts, course content, comparison, policy/practice, or critical discussion.",
+    "Do not ask for private sensitive data.",
+    `Output language: ${outputLanguage}.`,
+    `Research topic: ${topic}`,
+    `Assignment details JSON: ${JSON.stringify(details)}`,
+    `PDF themes JSON: ${JSON.stringify(pdfThemes)}`
+  ].join("\n");
+
+  return generateStructured<MaterialQualityCheck>(prompt, schema);
+}
+
 export async function generateThemeCandidates(
   topic: string,
   outputLanguage: "ja" | "en",
   answers: InterviewAnswer[] = [],
   pdfThemes: PdfTheme[] = [],
-  contentPoints: ContentPoint[] = []
+  contentPoints: ContentPoint[] = [],
+  refinementInstruction = "",
+  previousCandidates: ThemeCandidate[] = [],
+  combineCandidateIds: string[] = []
 ): Promise<ThemeCandidate[] | null> {
   const schema = {
     type: "object",
@@ -352,12 +426,18 @@ export async function generateThemeCandidates(
     "You are an academic librarian helping undergraduate students narrow report topics.",
     "Return exactly four realistic report plans based on the student's topic and interview answers.",
     "Each plan must use selected content points, make the vague idea more concrete, and include a research question, thesis hint, outline, and bilingual search keywords.",
+    "If previous candidates and refinement instructions are provided, improve the plans instead of simply repeating them.",
+    "If combineCandidateIds are provided, create at least one plan that mixes the strongest compatible parts of those plans.",
+    "When refining, preserve useful parts the student liked, remove weak parts, and make the plans more flexible and report-ready.",
     "Do not invent bibliography entries.",
     `Output language for title, question, and reason: ${outputLanguage}.`,
     `Student topic: ${topic}`,
     `Interview answers JSON: ${JSON.stringify(answers)}`,
     `Selected PDF themes JSON: ${JSON.stringify(pdfThemes)}`,
-    `Selected content points JSON: ${JSON.stringify(contentPoints)}`
+    `Selected content points JSON: ${JSON.stringify(contentPoints)}`,
+    `Previous candidates JSON: ${JSON.stringify(previousCandidates)}`,
+    `Candidate IDs to combine JSON: ${JSON.stringify(combineCandidateIds)}`,
+    `Student refinement instruction: ${refinementInstruction || "None"}`
   ].join("\n");
 
   const result = await generateStructured<{ candidates: ThemeCandidate[] }>(prompt, schema);

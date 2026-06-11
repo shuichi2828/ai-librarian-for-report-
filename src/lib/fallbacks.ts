@@ -3,6 +3,7 @@ import type {
   ContentPoint,
   InterviewAnswer,
   LibrarianQuestion,
+  MaterialQualityCheck,
   PersonalizationCheck,
   PersonalizationPoint,
   PdfInsightResult,
@@ -139,7 +140,98 @@ export function fallbackContentPoints(topic: string, details: AssignmentDetails,
     source: "pdf"
   }));
 
-  return [...base, ...mustInclude, ...pdfPoints].slice(0, 12);
+  const preferencePoints = (details.reportPreferences ?? []).slice(0, 4).map<ContentPoint>((preference, index) => ({
+    id: `point-preference-${index + 1}`,
+    title: preference,
+    description: outputLanguage === "ja" ? "Selected report preference to shape the argument and evidence style." : "Selected report preference to shape the argument and evidence style.",
+    type: "custom",
+    keywordsJa: [topic, preference],
+    keywordsEn: [topic, preference],
+    source: "user"
+  }));
+
+  return [...base, ...mustInclude, ...preferencePoints, ...pdfPoints].slice(0, 12);
+}
+
+export function fallbackMaterialQualityCheck(topic: string, details: AssignmentDetails, outputLanguage: "ja" | "en"): MaterialQualityCheck {
+  const ja = outputLanguage === "ja";
+  const score =
+    25 +
+    Math.min(20, details.assignmentPrompt.trim().length / 12) +
+    Math.min(20, details.userOpinion.trim().length / 10) +
+    Math.min(15, details.mustInclude.trim().length / 12) +
+    Math.min(10, (details.reportPreferences ?? []).length * 4) +
+    Math.min(10, details.materialNotes.trim().length / 15);
+
+  return {
+    score: Math.round(Math.min(95, score)),
+    verdict: ja
+      ? "The material can be used, but adding a target, report preference, and concrete example will make the plans sharper."
+      : "The material can be used, but adding a target, report preference, and concrete example will make the plans sharper.",
+    weaknesses: [
+      ja ? "Target scope may still be broad." : "Target scope may still be broad.",
+      ja ? "The student's position could be clearer." : "The student's position could be clearer.",
+      ja ? "Course concepts or concrete examples may be missing." : "Course concepts or concrete examples may be missing."
+    ],
+    questions: [
+      {
+        id: "target",
+        type: "choice",
+        label: ja ? "Who or what should the report focus on?" : "Who or what should the report focus on?",
+        helpText: ja ? "Pick the target that makes the topic report-sized." : "Pick the target that makes the topic report-sized.",
+        options: ["Students", "Teachers", "University policy", "Classroom practice", "Society", "Other"]
+      },
+      {
+        id: "stance",
+        type: "choice",
+        label: ja ? "What position feels closest right now?" : "What position feels closest right now?",
+        helpText: ja ? "It is okay if this changes later." : "It is okay if this changes later.",
+        options: ["Support", "Oppose", "Conditional support", "Compare both sides", "Not sure yet"]
+      },
+      {
+        id: "course-keyword",
+        type: "text",
+        label: ja ? "Add one course keyword or concrete class example." : "Add one course keyword or concrete class example.",
+        helpText: ja ? "This helps the plan connect to the assignment." : "This helps the plan connect to the assignment.",
+        options: []
+      }
+    ],
+    suggestions: [
+      {
+        id: "material-course",
+        title: ja ? "Course content focus" : "Course content focus",
+        description: ja ? "Connect the report to course concepts, assignment wording, or class discussion." : "Connect the report to course concepts, assignment wording, or class discussion.",
+        preferenceFit: ja ? "Good for course-focused reports." : "Good for course-focused reports.",
+        keywordsJa: [topic, "course", "assignment"],
+        keywordsEn: [topic, "course", "assignment"]
+      },
+      {
+        id: "material-evidence",
+        title: ja ? "Paper citation focus" : "Paper citation focus",
+        description: ja ? "Make the report center on what selected papers can and cannot support." : "Make the report center on what selected papers can and cannot support.",
+        preferenceFit: ja ? "Good for citation-heavy reports." : "Good for citation-heavy reports.",
+        keywordsJa: [topic, "evidence", "literature"],
+        keywordsEn: [topic, "evidence", "literature"]
+      },
+      {
+        id: "material-objective",
+        title: ja ? "Objective facts focus" : "Objective facts focus",
+        description: ja ? "Use data, policy documents, and verified facts before giving an opinion." : "Use data, policy documents, and verified facts before giving an opinion.",
+        preferenceFit: ja ? "Good for fact-based reports." : "Good for fact-based reports.",
+        keywordsJa: [topic, "data", "policy"],
+        keywordsEn: [topic, "data", "policy"]
+      },
+      {
+        id: "material-experience",
+        title: ja ? "Personal experience connection" : "Personal experience connection",
+        description: ja ? "Use a class experience or student perspective as the entry point, then support it with papers." : "Use a class experience or student perspective as the entry point, then support it with papers.",
+        preferenceFit: ja ? "Good when personal reflection is allowed." : "Good when personal reflection is allowed.",
+        keywordsJa: [topic, "student experience", "reflection"],
+        keywordsEn: [topic, "student experience", "reflection"]
+      }
+    ],
+    recommendedPreferences: ["Course content focused", "Paper citation focused"]
+  };
 }
 
 export function fallbackThemeCandidates(

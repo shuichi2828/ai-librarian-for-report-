@@ -8,7 +8,9 @@ The app includes open guest login. Anyone can enter a name or email and start us
 
 - Guest login for public use.
 - Assignment/material intake for the prompt, the student's opinion, and must-include points.
+- Material Quality Check for strengthening vague inputs before planning. It scores material strength, asks quick follow-up questions, supports report preferences such as personal experience, paper citations, objective facts, and course content, and lets students add suggested material to the planning flow.
 - AI-generated content suggestions that the user selects before report plans are created.
+- Flexible report-plan refinement. Students can ask for different plans, write what feels almost right, or select multiple plans to mix into a new set of options.
 - Optional PDF upload. The app summarizes the PDF and extracts themes that can be selected and folded into report plans.
 - OpenAI OCR fallback for scanned/image PDFs.
 - Paper search across OpenAlex, Crossref, Semantic Scholar, and CiNii.

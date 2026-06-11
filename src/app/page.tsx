@@ -25,6 +25,7 @@ import type {
   AssignmentDetails,
   ContentPoint,
   InterviewAnswer,
+  MaterialQualityCheck,
   OutputLanguage,
   PersonalizationCheck,
   PersonalizationPoint,
@@ -53,6 +54,12 @@ type PlansResponse = {
 type PdfResponse = PdfInsightResult & {
   textLength: number;
   extractionMode: "text" | "openai-ocr";
+  usedFallback: boolean;
+};
+
+type MaterialQualityResponse = {
+  check: MaterialQualityCheck;
+  outputLanguage: "ja" | "en";
   usedFallback: boolean;
 };
 
@@ -93,6 +100,15 @@ type GuestUser = {
 
 const HISTORY_KEY = "ai-librarian-history-v3";
 const USER_KEY = "ai-librarian-user-v1";
+const REPORT_PREFERENCES = [
+  "Personal experience focused",
+  "Paper citation focused",
+  "Objective facts focused",
+  "Course content focused",
+  "Comparison focused",
+  "Policy/practice focused",
+  "Critical discussion focused"
+];
 
 function languageLabel(language: OutputLanguage) {
   if (language === "ja") return "Japanese";
@@ -117,8 +133,13 @@ export default function Home() {
   const [details, setDetails] = useState<AssignmentDetails>({
     assignmentPrompt: "",
     userOpinion: "",
-    mustInclude: ""
+    mustInclude: "",
+    reportPreferences: [],
+    materialNotes: ""
   });
+  const [materialCheck, setMaterialCheck] = useState<MaterialQualityCheck | null>(null);
+  const [materialQuestionAnswers, setMaterialQuestionAnswers] = useState<Record<string, string>>({});
+  const [selectedMaterialSuggestionIds, setSelectedMaterialSuggestionIds] = useState<string[]>([]);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [forcePdfOcr, setForcePdfOcr] = useState(false);
   const [pdfMode, setPdfMode] = useState<"text" | "openai-ocr">();
@@ -129,6 +150,9 @@ export default function Home() {
   const [customPoint, setCustomPoint] = useState("");
   const [plans, setPlans] = useState<ThemeCandidate[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>();
+  const [refinementInstruction, setRefinementInstruction] = useState("");
+  const [combinePlanIds, setCombinePlanIds] = useState<string[]>([]);
+  const [planRevisionCount, setPlanRevisionCount] = useState(0);
   const [references, setReferences] = useState<ReferenceItem[]>([]);
   const [selectedReferenceIds, setSelectedReferenceIds] = useState<string[]>([]);
   const [reportOutline, setReportOutline] = useState<ReportOutline | null>(null);
@@ -148,7 +172,7 @@ export default function Home() {
   const [refinements, setRefinements] = useState<string[]>([]);
   const [totalReviewed, setTotalReviewed] = useState<number>();
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [status, setStatus] = useState<"idle" | "points" | "pdf" | "plans" | "references" | "outline" | "draft" | "personalization" | "revision">("idle");
+  const [status, setStatus] = useState<"idle" | "material" | "points" | "pdf" | "plans" | "references" | "outline" | "draft" | "personalization" | "revision">("idle");
   const [error, setError] = useState<string>();
 
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedPlanId), [plans, selectedPlanId]);
@@ -198,6 +222,9 @@ export default function Home() {
     setHistory([]);
     setContentPoints([]);
     setPlans([]);
+    setCombinePlanIds([]);
+    setRefinementInstruction("");
+    setPlanRevisionCount(0);
     setReferences([]);
     setReportOutline(null);
     setReportDraft(null);
@@ -216,6 +243,12 @@ export default function Home() {
     setRevisedDraft(null);
   }
 
+  function clearMaterialCheck() {
+    setMaterialCheck(null);
+    setMaterialQuestionAnswers({});
+    setSelectedMaterialSuggestionIds([]);
+  }
+
   function selectedPdfThemes() {
     return pdfInsight?.themes.filter((theme) => selectedPdfThemeIds.includes(theme.id)) ?? [];
   }
@@ -228,7 +261,9 @@ export default function Home() {
     const answers: InterviewAnswer[] = [
       { questionId: "assignment-prompt", question: "Assignment prompt", answer: details.assignmentPrompt },
       { questionId: "user-opinion", question: "User opinion", answer: details.userOpinion },
-      { questionId: "must-include", question: "Must-include points", answer: details.mustInclude }
+      { questionId: "must-include", question: "Must-include points", answer: details.mustInclude },
+      { questionId: "report-preferences", question: "Report preferences", answer: details.reportPreferences.join(", ") },
+      { questionId: "material-notes", question: "Material notes from quality check", answer: details.materialNotes }
     ].filter((item) => item.answer.trim().length > 0);
 
     if (selectedPdfThemes().length > 0) {
@@ -278,12 +313,17 @@ export default function Home() {
       const result = (await response.json()) as ContentPointsResponse;
       setContentPoints(result.points);
       setSelectedContentPointIds(result.points.slice(0, 5).map((point) => point.id));
+      setCombinePlanIds([]);
+      setRefinementInstruction("");
+      setPlanRevisionCount(0);
       trackUsage("content_points_created", {
         outputLanguage,
         topicLength: topic.length,
         hasAssignmentPrompt: details.assignmentPrompt.trim().length > 0,
         hasUserOpinion: details.userOpinion.trim().length > 0,
         hasMustInclude: details.mustInclude.trim().length > 0,
+        preferenceCount: details.reportPreferences.length,
+        hasMaterialNotes: details.materialNotes.trim().length > 0,
         selectedPdfThemes: selectedPdfThemes().length,
         pointCount: result.points.length,
         usedFallback: result.usedFallback
@@ -295,15 +335,70 @@ export default function Home() {
     }
   }
 
-  async function getPlans() {
+  async function checkMaterialQuality() {
+    if (!topic.trim()) {
+      setError("Please enter a research topic first.");
+      return;
+    }
+
+    setStatus("material");
+    setError(undefined);
+
+    try {
+      const response = await fetch("/api/material-quality", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          outputLanguage,
+          details,
+          pdfThemes: selectedPdfThemes()
+        })
+      });
+
+      if (!response.ok) throw new Error("material");
+
+      const result = (await response.json()) as MaterialQualityResponse;
+      setMaterialCheck(result.check);
+      setSelectedMaterialSuggestionIds(result.check.suggestions.slice(0, 3).map((suggestion) => suggestion.id));
+      trackUsage("material_quality_checked", {
+        outputLanguage,
+        score: result.check.score,
+        weaknessCount: result.check.weaknesses.length,
+        questionCount: result.check.questions.length,
+        suggestionCount: result.check.suggestions.length,
+        preferenceCount: details.reportPreferences.length,
+        usedFallback: result.usedFallback
+      });
+    } catch {
+      setError("Could not check the material yet.");
+    } finally {
+      setStatus("idle");
+    }
+  }
+
+  async function getPlans(mode: "initial" | "refine" | "mix" = "initial") {
     if (selectedContentPoints().length === 0) {
       setError("Please select at least one content point first.");
       return;
     }
 
+    if (mode === "mix" && combinePlanIds.length < 2) {
+      setError("Please select at least two plans to mix.");
+      return;
+    }
+
+    const previousPlans = plans;
+    const instruction =
+      mode === "initial"
+        ? ""
+        : refinementInstruction.trim() ||
+          (mode === "mix" ? "Mix the selected plans into stronger alternatives while keeping their best parts." : "Create different report plans with clearer and more flexible angles.");
+
     setStatus("plans");
     setError(undefined);
     setPlans([]);
+    setSelectedPlanId(undefined);
     setReferences([]);
     setSelectedReferenceIds([]);
     setReportOutline(null);
@@ -320,7 +415,10 @@ export default function Home() {
           outputLanguage,
           answers: currentAnswers(),
           pdfThemes: selectedPdfThemes(),
-          contentPoints: selectedContentPoints()
+          contentPoints: selectedContentPoints(),
+          previousCandidates: mode === "initial" ? [] : previousPlans,
+          combineCandidateIds: mode === "mix" ? combinePlanIds : [],
+          refinementInstruction: instruction
         })
       });
 
@@ -329,11 +427,19 @@ export default function Home() {
       const result = (await response.json()) as PlansResponse;
       setPlans(result.candidates);
       setSelectedPlanId(result.candidates[0]?.id);
+      setCombinePlanIds([]);
+      if (mode !== "initial") {
+        setPlanRevisionCount((current) => current + 1);
+      }
       trackUsage("report_plans_created", {
         outputLanguage,
         contentPointCount: selectedContentPoints().length,
         pdfThemeCount: selectedPdfThemes().length,
         planCount: result.candidates.length,
+        mode,
+        previousPlanCount: previousPlans.length,
+        combinePlanCount: mode === "mix" ? combinePlanIds.length : 0,
+        hasRefinementInstruction: instruction.length > 0,
         usedFallback: result.usedFallback
       });
     } catch {
@@ -667,6 +773,8 @@ export default function Home() {
     setOutputLanguage(entry.outputLanguage);
     setPlans([entry.plan]);
     setSelectedPlanId(entry.plan.id);
+    setCombinePlanIds([]);
+    setRefinementInstruction("");
     setReferences(entry.references);
     setWarnings([]);
     setAlternatives([]);
@@ -684,10 +792,85 @@ export default function Home() {
     setSelectedContentPointIds((current) => (current.includes(pointId) ? current.filter((id) => id !== pointId) : [...current, pointId]));
   }
 
+  function toggleReportPreference(preference: string) {
+    setDetails((current) => ({
+      ...current,
+      reportPreferences: current.reportPreferences.includes(preference) ? current.reportPreferences.filter((item) => item !== preference) : [...current.reportPreferences, preference]
+    }));
+    clearMaterialCheck();
+  }
+
+  function toggleMaterialSuggestion(suggestionId: string) {
+    setSelectedMaterialSuggestionIds((current) => (current.includes(suggestionId) ? current.filter((id) => id !== suggestionId) : [...current, suggestionId]));
+  }
+
+  function updateMaterialAnswer(questionId: string, answer: string) {
+    setMaterialQuestionAnswers((current) => ({
+      ...current,
+      [questionId]: answer
+    }));
+  }
+
+  function applyMaterialEnhancements() {
+    if (!materialCheck) return;
+
+    const selectedSuggestions = materialCheck.suggestions.filter((suggestion) => selectedMaterialSuggestionIds.includes(suggestion.id));
+    const answerLines = materialCheck.questions
+      .map((question) => {
+        const answer = materialQuestionAnswers[question.id]?.trim();
+        return answer ? `${question.label}: ${answer}` : "";
+      })
+      .filter(Boolean);
+
+    const suggestionPoints = selectedSuggestions.map<ContentPoint>((suggestion) => ({
+      id: `material-${suggestion.id}-${Date.now()}`,
+      title: suggestion.title,
+      description: suggestion.description,
+      type: "custom",
+      keywordsJa: suggestion.keywordsJa,
+      keywordsEn: suggestion.keywordsEn,
+      source: "ai"
+    }));
+
+    const answerPoints = answerLines.map<ContentPoint>((line, index) => ({
+      id: `material-answer-${Date.now()}-${index}`,
+      title: `Material detail ${index + 1}`,
+      description: line,
+      type: "custom",
+      keywordsJa: [topic, line],
+      keywordsEn: [topic, line],
+      source: "user"
+    }));
+
+    const newPoints = [...suggestionPoints, ...answerPoints];
+    if (newPoints.length > 0) {
+      setContentPoints((current) => [...current, ...newPoints]);
+      setSelectedContentPointIds((current) => [...current, ...newPoints.map((point) => point.id)]);
+    }
+
+    if (answerLines.length > 0 || selectedSuggestions.length > 0) {
+      const notes = [...answerLines, ...selectedSuggestions.map((suggestion) => `${suggestion.title}: ${suggestion.description}`)].join("\n");
+      setDetails((current) => ({
+        ...current,
+        materialNotes: [current.materialNotes, notes].filter(Boolean).join("\n")
+      }));
+    }
+
+    trackUsage("material_enhancements_added", {
+      selectedSuggestionCount: selectedSuggestions.length,
+      answeredQuestionCount: answerLines.length,
+      preferenceCount: details.reportPreferences.length
+    });
+  }
+
   function toggleReference(referenceId: string) {
     setSelectedReferenceIds((current) => (current.includes(referenceId) ? current.filter((id) => id !== referenceId) : [...current, referenceId]));
     setReportDraft(null);
     clearRevisionFlow();
+  }
+
+  function toggleCombinePlan(planId: string) {
+    setCombinePlanIds((current) => (current.includes(planId) ? current.filter((id) => id !== planId) : [...current, planId]));
   }
 
   function toggleImprovement(improvementId: string) {
@@ -841,6 +1024,83 @@ export default function Home() {
               <textarea value={details.mustInclude} onChange={(event) => setDetails({ ...details, mustInclude: event.target.value })} placeholder="AI literacy, plagiarism, university guidelines" rows={4} />
             </label>
           </div>
+          <div className="preferenceBox">
+            <span>Report preference</span>
+            <div className="preferenceGrid">
+              {REPORT_PREFERENCES.map((preference) => (
+                <label className={details.reportPreferences.includes(preference) ? "preferenceChip selected" : "preferenceChip"} key={preference}>
+                  <input type="checkbox" checked={details.reportPreferences.includes(preference)} onChange={() => toggleReportPreference(preference)} />
+                  {preference}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="materialCheckBox">
+            <div>
+              <strong>Material Quality Check</strong>
+              <p>Check whether the material is specific enough before creating content suggestions and plans.</p>
+            </div>
+            <button className="secondaryButton compact" type="button" onClick={checkMaterialQuality} disabled={busy}>
+              {status === "material" ? <Loader2 size={17} className="spin" /> : <CheckCircle2 size={17} />}
+              Check material
+            </button>
+          </div>
+          {materialCheck && (
+            <div className="materialResult">
+              <div className="materialScore">
+                <b>{materialCheck.score}%</b>
+                <span>{materialCheck.verdict}</span>
+              </div>
+              <div className="materialColumns">
+                <section>
+                  <h3>What to clarify</h3>
+                  {materialCheck.weaknesses.map((weakness) => (
+                    <p key={weakness}>{weakness}</p>
+                  ))}
+                  {materialCheck.recommendedPreferences.length > 0 && <small>Recommended preferences: {materialCheck.recommendedPreferences.join(", ")}</small>}
+                </section>
+                <section>
+                  <h3>Quick questions</h3>
+                  <div className="materialQuestionList">
+                    {materialCheck.questions.map((question) => (
+                      <label className="materialQuestion" key={question.id}>
+                        <span>{question.label}</span>
+                        <small>{question.helpText}</small>
+                        {question.type === "choice" ? (
+                          <select value={materialQuestionAnswers[question.id] ?? ""} onChange={(event) => updateMaterialAnswer(question.id, event.target.value)}>
+                            <option value="">Choose one</option>
+                            {question.options.map((option) => (
+                              <option value={option} key={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <textarea value={materialQuestionAnswers[question.id] ?? ""} onChange={(event) => updateMaterialAnswer(question.id, event.target.value)} rows={2} />
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </section>
+              </div>
+              <div className="materialSuggestionArea">
+                <h3>Material to add</h3>
+                <div className="themeGrid">
+                  {materialCheck.suggestions.map((suggestion) => (
+                    <label className={selectedMaterialSuggestionIds.includes(suggestion.id) ? "selectCard selected" : "selectCard"} key={suggestion.id}>
+                      <input type="checkbox" checked={selectedMaterialSuggestionIds.includes(suggestion.id)} onChange={() => toggleMaterialSuggestion(suggestion.id)} />
+                      <span>{suggestion.title}</span>
+                      <small>{suggestion.description}</small>
+                      <em>{suggestion.preferenceFit}</em>
+                    </label>
+                  ))}
+                </div>
+                <button className="secondaryButton" type="button" onClick={applyMaterialEnhancements}>
+                  Add selected material
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="pdfPane" aria-label="PDF insights">
@@ -922,7 +1182,7 @@ export default function Home() {
               </button>
             </div>
             {contentPoints.length > 0 && (
-              <button className="secondaryButton" type="button" onClick={getPlans} disabled={busy}>
+              <button className="secondaryButton" type="button" onClick={() => getPlans("initial")} disabled={busy}>
                 {status === "plans" ? <Loader2 size={18} className="spin" /> : <BookOpen size={18} />}
                 Create report plans
               </button>
@@ -933,13 +1193,42 @@ export default function Home() {
             <div className="sectionHeader">
               <BookOpen size={18} />
               <h2>3. Choose a report plan</h2>
+              {planRevisionCount > 0 && <span className="selectedChip">Revised {planRevisionCount}</span>}
             </div>
+            {plans.length > 0 && (
+              <div className="planRefineBox">
+                <label>
+                  <span>Want different or more flexible plans?</span>
+                  <textarea
+                    value={refinementInstruction}
+                    onChange={(event) => setRefinementInstruction(event.target.value)}
+                    placeholder="Example: Plan 1 is good, but make it more policy-focused. Or mix Plan 1's question with Plan 2's argument."
+                    rows={3}
+                  />
+                </label>
+                <div className="planRefineActions">
+                  <button className="secondaryButton compact" type="button" onClick={() => getPlans("refine")} disabled={busy}>
+                    {status === "plans" ? <Loader2 size={17} className="spin" /> : <RefreshCcw size={17} />}
+                    Suggest different plans
+                  </button>
+                  <button className="secondaryButton compact" type="button" onClick={() => getPlans("mix")} disabled={busy || combinePlanIds.length < 2}>
+                    <BookOpen size={17} />
+                    Mix selected plans
+                  </button>
+                  <span>{combinePlanIds.length} selected to mix</span>
+                </div>
+              </div>
+            )}
             <div className="angleList">
               {plans.length === 0 ? (
                 <div className="placeholderBlock">Plans will appear after you choose content points.</div>
               ) : (
                 plans.map((plan) => (
                   <article className={plan.id === selectedPlanId ? "angleCard selected" : "angleCard"} key={plan.id}>
+                    <label className="mixSelect">
+                      <input type="checkbox" checked={combinePlanIds.includes(plan.id)} onChange={() => toggleCombinePlan(plan.id)} />
+                      Mix
+                    </label>
                     <span>{plan.title}</span>
                     <p>{plan.researchQuestion}</p>
                     <small>{plan.reason}</small>

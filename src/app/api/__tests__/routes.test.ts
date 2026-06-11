@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { POST as questionPost } from "@/app/api/librarian-questions/route";
+import { POST as materialPost } from "@/app/api/material-quality/route";
 import { POST as personalizationPost } from "@/app/api/personalization-check/route";
 import { POST as draftPost } from "@/app/api/report-draft/route";
 import { POST as revisionPost } from "@/app/api/report-revision/route";
@@ -18,6 +19,15 @@ describe("API routes", () => {
 
   it("rejects invalid topic requests", async () => {
     const response = await themePost(new Request("http://localhost/api/theme-candidates", {
+      method: "POST",
+      body: JSON.stringify({ topic: "", outputLanguage: "ja" })
+    }));
+
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects invalid material quality requests", async () => {
+    const response = await materialPost(new Request("http://localhost/api/material-quality", {
       method: "POST",
       body: JSON.stringify({ topic: "", outputLanguage: "ja" })
     }));

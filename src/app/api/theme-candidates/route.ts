@@ -42,7 +42,26 @@ const requestSchema = z.object({
         source: z.enum(["ai", "pdf", "user"])
       })
     )
-    .default([])
+    .default([]),
+  previousCandidates: z
+    .array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        researchQuestion: z.string(),
+        keywordsJa: z.array(z.string()),
+        keywordsEn: z.array(z.string()),
+        reason: z.string(),
+        thesisHint: z.string(),
+        outline: z.array(z.string()),
+        paperStrategy: z.string(),
+        contentPointIds: z.array(z.string()).default([])
+      })
+    )
+    .max(8)
+    .default([]),
+  combineCandidateIds: z.array(z.string()).max(4).default([]),
+  refinementInstruction: z.string().trim().max(1200).default("")
 });
 
 export async function POST(request: Request) {
@@ -56,9 +75,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid topic or output language." }, { status: 400 });
   }
 
-  const { topic, outputLanguage, answers, pdfThemes, contentPoints } = parsed.data;
+  const { topic, outputLanguage, answers, pdfThemes, contentPoints, previousCandidates, combineCandidateIds, refinementInstruction } = parsed.data;
   const language = resolveOutputLanguage(topic, outputLanguage);
-  const generated = await generateThemeCandidates(topic, language, answers, pdfThemes, contentPoints);
+  const generated = await generateThemeCandidates(topic, language, answers, pdfThemes, contentPoints, refinementInstruction, previousCandidates, combineCandidateIds);
   const candidates = generated?.length === 4 ? generated : fallbackThemeCandidates(topic, language, answers, pdfThemes, contentPoints);
   const enrichedCandidates = candidates.map((candidate) => ({
     ...candidate,
