@@ -13,10 +13,12 @@ The app includes open guest login. Anyone can enter a name or email and start us
 - Flexible report-plan refinement. Students can ask for different plans, write what feels almost right, or select multiple plans to mix into a new set of options.
 - Optional PDF upload. The app summarizes the PDF and extracts themes that can be selected and folded into report plans.
 - OpenAI OCR fallback for scanned/image PDFs.
+- PDF-only outline and draft mode. Students can draft from selected PDF themes without choosing external papers; the app labels that no external paper citations are included yet.
 - Paper search across OpenAlex, Crossref, Semantic Scholar, and CiNii.
 - Relevance-ranked paper candidates with percentage scores.
 - Multi-paper selection for building a report outline that incorporates chosen papers and PDF themes.
 - Optional report draft generation after choosing a plan and papers, with word count, language level, natural-tone, and custom condition controls.
+- Draft writing style control with Standard and Academic modes.
 - Personalization check after draft generation. The app suggests selectable revision points, lets the user add "Others" in free text, and creates a revised draft focused on the student's own argument, course context, examples, and evidence use.
 - Vercel Analytics for page views and privacy-conscious feature events. Events track counts and settings only, not student names, topic text, PDF text, or paper titles.
 

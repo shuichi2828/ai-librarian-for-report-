@@ -525,7 +525,7 @@ export async function generateReportDraft(
       languageLevel: { type: "string", enum: ["high", "middle", "low"] },
       humanLike: { type: "boolean" },
       notes: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 5 },
-      bibliography: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 10 }
+      bibliography: { type: "array", items: { type: "string" }, minItems: 0, maxItems: 10 }
     }
   };
 
@@ -545,11 +545,14 @@ export async function generateReportDraft(
     "Write a draft that the student can revise, not a final submission. Add a note reminding the student to verify full texts and course rules.",
     "Use only the selected verified papers for citations. Do not invent sources, page numbers, quotes, or findings.",
     "Use in-text citations when a selected paper supports a claim, and include the APA 7 bibliography entries supplied by the system.",
+    "If no selected papers are provided, write a PDF-only draft grounded in the selected PDF themes and content points. Clearly state that no external paper citations are included yet.",
     "If a paper only has metadata summary, avoid detailed claims that would require reading the full paper.",
+    "If writingStyle is academic, use formal academic prose, clear topic sentences, cautious claims, and transitions suitable for a university report.",
     "Human-like means natural, readable academic prose; do not optimize for bypassing AI detection.",
     `Output language: ${outputLanguage}.`,
     `Target word count: ${options.targetWordCount}.`,
     `Language level: ${options.languageLevel}. High = advanced academic, middle = clear undergraduate, low = simple and accessible.`,
+    `Writing style: ${options.writingStyle}.`,
     `Natural human-like tone: ${options.humanLike}.`,
     `Other conditions: ${options.otherConditions || "None"}`,
     `Report plan JSON: ${JSON.stringify(plan)}`,
@@ -642,7 +645,7 @@ export async function generateRevisedReportDraft(
       languageLevel: { type: "string", enum: ["high", "middle", "low"] },
       humanLike: { type: "boolean" },
       notes: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 5 },
-      bibliography: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 10 },
+      bibliography: { type: "array", items: { type: "string" }, minItems: 0, maxItems: 10 },
       appliedImprovementIds: { type: "array", items: { type: "string" } },
       customImprovements: { type: "array", items: { type: "string" } }
     }
@@ -662,10 +665,13 @@ export async function generateRevisedReportDraft(
     "Revise the draft according to the selected improvements so it better reflects the student's own argument, course context, evidence choices, examples, and limitations.",
     "Do not provide or optimize for AI-detection evasion. Keep the goal as better academic authorship and revision.",
     "Use only the selected verified papers. Do not invent sources, page numbers, direct quotes, or findings.",
+    "If no selected papers are provided, preserve PDF-only framing and clearly avoid external-paper citations.",
     "If a source only has metadata, avoid detailed claims that require full-text reading.",
+    "If writingStyle is academic, revise toward formal academic prose, cautious claims, and clearer paragraph-level argumentation.",
     `Output language: ${outputLanguage}.`,
     `Target word count: ${options.targetWordCount}.`,
     `Language level: ${options.languageLevel}.`,
+    `Writing style: ${options.writingStyle}.`,
     `Other conditions: ${options.otherConditions || "None"}`,
     `Report plan JSON: ${JSON.stringify(plan)}`,
     `Selected content points JSON: ${JSON.stringify(contentPoints)}`,

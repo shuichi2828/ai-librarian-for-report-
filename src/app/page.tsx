@@ -159,6 +159,7 @@ export default function Home() {
   const [draftOptions, setDraftOptions] = useState<ReportDraftOptions>({
     targetWordCount: 1200,
     languageLevel: "middle",
+    writingStyle: "standard",
     humanLike: true,
     otherConditions: ""
   });
@@ -255,6 +256,10 @@ export default function Home() {
 
   function selectedContentPoints() {
     return contentPoints.filter((point) => selectedContentPointIds.includes(point.id));
+  }
+
+  function hasSelectedDraftMaterial(selectedReferences: ReferenceItem[]) {
+    return selectedReferences.length > 0 || selectedPdfThemes().length > 0 || selectedContentPoints().length > 0;
   }
 
   function currentAnswers(): InterviewAnswer[] {
@@ -557,8 +562,8 @@ export default function Home() {
     }
 
     const selectedReferences = references.filter((reference) => selectedReferenceIds.includes(reference.id));
-    if (selectedReferences.length === 0) {
-      setError("Please select at least one paper to include.");
+    if (!hasSelectedDraftMaterial(selectedReferences)) {
+      setError("Please select at least one paper, PDF theme, or content point to include.");
       return;
     }
 
@@ -587,6 +592,7 @@ export default function Home() {
       trackUsage("outline_created", {
         outputLanguage,
         selectedReferenceCount: selectedReferences.length,
+        pdfOnly: selectedReferences.length === 0 && selectedPdfThemes().length > 0,
         contentPointCount: selectedContentPoints().length,
         pdfThemeCount: selectedPdfThemes().length,
         sectionCount: result.outline.sections.length,
@@ -606,8 +612,8 @@ export default function Home() {
     }
 
     const selectedReferences = references.filter((reference) => selectedReferenceIds.includes(reference.id));
-    if (selectedReferences.length === 0) {
-      setError("Please select at least one paper to include.");
+    if (!hasSelectedDraftMaterial(selectedReferences)) {
+      setError("Please select at least one paper, PDF theme, or content point to include.");
       return;
     }
 
@@ -637,8 +643,10 @@ export default function Home() {
       trackUsage("draft_created", {
         outputLanguage,
         selectedReferenceCount: selectedReferences.length,
+        pdfOnly: selectedReferences.length === 0 && selectedPdfThemes().length > 0,
         targetWordCount: draftOptions.targetWordCount,
         languageLevel: draftOptions.languageLevel,
+        writingStyle: draftOptions.writingStyle,
         humanLike: draftOptions.humanLike,
         hasOtherConditions: draftOptions.otherConditions.trim().length > 0,
         usedFallback: result.usedFallback
@@ -657,8 +665,8 @@ export default function Home() {
     }
 
     const selectedReferences = references.filter((reference) => selectedReferenceIds.includes(reference.id));
-    if (selectedReferences.length === 0) {
-      setError("Please select at least one paper to include.");
+    if (!hasSelectedDraftMaterial(selectedReferences)) {
+      setError("Please select at least one paper, PDF theme, or content point to include.");
       return;
     }
 
@@ -759,6 +767,7 @@ export default function Home() {
         selectedImprovementCount: improvementsForRequest.length,
         hasOtherImprovement: customImprovements.length > 0,
         selectedReferenceCount: selectedReferences.length,
+        writingStyle: draftOptions.writingStyle,
         usedFallback: result.usedFallback
       });
     } catch {
@@ -1311,17 +1320,24 @@ export default function Home() {
           </div>
         </section>
 
-        {references.length > 0 && (
+        {selectedPlan && (references.length > 0 || selectedPdfThemes().length > 0 || selectedContentPoints().length > 0) && (
           <section className="outlinePane" aria-label="Report outline">
             <div className="sectionHeader">
               <ListChecks size={18} />
               <h2>5. Build outline and optional draft</h2>
-              <span className="selectedChip">{selectedReferenceIds.length} papers selected</span>
+              <span className="selectedChip">
+                {selectedReferenceIds.length > 0 ? `${selectedReferenceIds.length} papers selected` : selectedPdfThemes().length > 0 ? "PDF-only mode" : "Content-only mode"}
+              </span>
             </div>
-            <button className="primaryButton" type="button" onClick={createOutline} disabled={busy || selectedReferenceIds.length === 0}>
+            <button className="primaryButton" type="button" onClick={createOutline} disabled={busy || (selectedReferenceIds.length === 0 && selectedPdfThemes().length === 0 && selectedContentPoints().length === 0)}>
               {status === "outline" ? <Loader2 size={18} className="spin" /> : <CheckCircle2 size={18} />}
               Create report outline
             </button>
+            {selectedReferenceIds.length === 0 && selectedPdfThemes().length > 0 && (
+              <div className="notice">
+                <p>This will create a PDF-only draft. It will not include external paper citations until you select papers.</p>
+              </div>
+            )}
             {reportOutline && (
               <article className="outlineResult">
                 <h3>{reportOutline.title}</h3>
@@ -1370,6 +1386,13 @@ export default function Home() {
                     <option value="low">Low</option>
                   </select>
                 </label>
+                <label>
+                  <span>Writing style</span>
+                  <select value={draftOptions.writingStyle} onChange={(event) => setDraftOptions({ ...draftOptions, writingStyle: event.target.value as ReportDraftOptions["writingStyle"] })}>
+                    <option value="standard">Standard</option>
+                    <option value="academic">Academic</option>
+                  </select>
+                </label>
                 <label className="inlineToggle draftToggle">
                   <input type="checkbox" checked={draftOptions.humanLike} onChange={(event) => setDraftOptions({ ...draftOptions, humanLike: event.target.checked })} />
                   Natural, human-like tone
@@ -1384,7 +1407,7 @@ export default function Home() {
                   />
                 </label>
               </div>
-              <button className="primaryButton" type="button" onClick={createDraft} disabled={busy || selectedReferenceIds.length === 0}>
+              <button className="primaryButton" type="button" onClick={createDraft} disabled={busy || (selectedReferenceIds.length === 0 && selectedPdfThemes().length === 0 && selectedContentPoints().length === 0)}>
                 {status === "draft" ? <Loader2 size={18} className="spin" /> : <PenLine size={18} />}
                 Write report draft
               </button>

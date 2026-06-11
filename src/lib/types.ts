@@ -134,6 +134,7 @@ export type ReportOutline = {
 export type ReportDraftOptions = {
   targetWordCount: number;
   languageLevel: "high" | "middle" | "low";
+  writingStyle: "standard" | "academic";
   humanLike: boolean;
   otherConditions: string;
 };

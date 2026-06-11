@@ -62,7 +62,7 @@ const draftSchema = z.object({
 const requestSchema = z.object({
   draft: draftSchema,
   plan: planSchema,
-  references: z.array(referenceSchema).min(1).max(10),
+  references: z.array(referenceSchema).max(10).default([]),
   contentPoints: z.array(contentPointSchema).max(12).default([]),
   outputLanguage: z.enum(["ja", "en"]).default("en")
 });

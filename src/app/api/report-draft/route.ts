@@ -80,13 +80,14 @@ const outlineSchema = z
 const draftOptionsSchema = z.object({
   targetWordCount: z.number().int().min(300).max(5000).default(1200),
   languageLevel: z.enum(["high", "middle", "low"]).default("middle"),
+  writingStyle: z.enum(["standard", "academic"]).default("standard"),
   humanLike: z.boolean().default(true),
   otherConditions: z.string().max(1200).default("")
 });
 
 const requestSchema = z.object({
   plan: planSchema,
-  references: z.array(referenceSchema).min(1).max(10),
+  references: z.array(referenceSchema).max(10).default([]),
   pdfThemes: z.array(pdfThemeSchema).max(6).default([]),
   contentPoints: z.array(contentPointSchema).max(12).default([]),
   outline: outlineSchema,
@@ -106,6 +107,10 @@ export async function POST(request: Request) {
   }
 
   const { references, pdfThemes, contentPoints, outline, options, outputLanguage } = parsed.data;
+  if (references.length === 0 && pdfThemes.length === 0 && contentPoints.length === 0) {
+    return NextResponse.json({ error: "Select at least one paper, PDF theme, or content point before drafting." }, { status: 400 });
+  }
+
   const plan = {
     ...parsed.data.plan,
     contentPointIds: parsed.data.plan.contentPointIds ?? []

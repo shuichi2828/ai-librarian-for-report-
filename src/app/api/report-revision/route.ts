@@ -71,6 +71,7 @@ const improvementSchema = z.object({
 const draftOptionsSchema = z.object({
   targetWordCount: z.number().int().min(300).max(5000).default(1200),
   languageLevel: z.enum(["high", "middle", "low"]).default("middle"),
+  writingStyle: z.enum(["standard", "academic"]).default("standard"),
   humanLike: z.boolean().default(true),
   otherConditions: z.string().max(1200).default("")
 });
@@ -78,7 +79,7 @@ const draftOptionsSchema = z.object({
 const requestSchema = z.object({
   draft: draftSchema,
   plan: planSchema,
-  references: z.array(referenceSchema).min(1).max(10),
+  references: z.array(referenceSchema).max(10).default([]),
   contentPoints: z.array(contentPointSchema).max(12).default([]),
   selectedImprovements: z.array(improvementSchema).min(1).max(10),
   customImprovements: z.array(z.string().min(1).max(500)).max(5).default([]),

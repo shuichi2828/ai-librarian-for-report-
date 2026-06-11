@@ -918,7 +918,7 @@ code {
 
 .draftControls {
   display: grid;
-  grid-template-columns: minmax(140px, 180px) minmax(150px, 190px) minmax(210px, auto);
+  grid-template-columns: minmax(140px, 180px) minmax(150px, 190px) minmax(150px, 190px) minmax(210px, auto);
   gap: 12px;
   align-items: end;
   border: 1px solid var(--line);
