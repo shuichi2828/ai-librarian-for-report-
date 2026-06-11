@@ -121,8 +121,26 @@ function copyText(reference: ReferenceItem) {
   return [reference.apa7, reference.abstractOrMetadataSummary, reference.whyUseful, url].filter(Boolean).join("\n");
 }
 
+type AnalyticsValue = string | number | boolean | null | undefined;
+
+function sanitizeAnalyticsValue(value: AnalyticsValue) {
+  if (value === undefined) return undefined;
+  if (typeof value === "string") return value.slice(0, 255);
+  return value;
+}
+
 function trackUsage(eventName: string, properties: Record<string, string | number | boolean | null | undefined> = {}) {
-  track(eventName, properties);
+  const safeProperties = Object.fromEntries(
+    Object.entries(properties)
+      .map(([key, value]) => [key.slice(0, 255), sanitizeAnalyticsValue(value)] as const)
+      .filter((entry): entry is [string, string | number | boolean | null] => entry[1] !== undefined)
+  );
+
+  try {
+    track(eventName.slice(0, 255), safeProperties);
+  } catch {
+    // Analytics must never block the report workflow.
+  }
 }
 
 export default function Home() {
@@ -187,6 +205,7 @@ export default function Home() {
       setUser(parsedUser);
       setLoginName(parsedUser.name);
     }
+
   }, []);
 
   useEffect(() => {
