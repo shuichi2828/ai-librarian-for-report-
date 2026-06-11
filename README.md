@@ -16,6 +16,7 @@ The app includes open guest login. Anyone can enter a name or email and start us
 - Multi-paper selection for building a report outline that incorporates chosen papers and PDF themes.
 - Optional report draft generation after choosing a plan and papers, with word count, language level, natural-tone, and custom condition controls.
 - Personalization check after draft generation. The app suggests selectable revision points, lets the user add "Others" in free text, and creates a revised draft focused on the student's own argument, course context, examples, and evidence use.
+- Vercel Analytics for page views and privacy-conscious feature events. Events track counts and settings only, not student names, topic text, PDF text, or paper titles.
 
 ## Run
 
@@ -42,8 +43,21 @@ The easiest public deployment path for this Next.js app is Vercel.
    - `SEMANTIC_SCHOLAR_API_KEY` (optional)
    - `CINII_APP_ID` (optional)
 4. Deploy.
+5. In Vercel, open the project dashboard and enable Web Analytics to view traffic and custom events.
 
 Never expose `OPENAI_API_KEY` in browser code. This app keeps OpenAI and academic-search calls in server-side API routes. The API routes include a small in-memory rate limit for public MVP use, but a production service should add persistent rate limiting, monitoring, and abuse controls.
+
+Tracked custom events:
+
+- `guest_login`
+- `content_points_created`
+- `pdf_read`
+- `report_plans_created`
+- `papers_found`
+- `outline_created`
+- `draft_created`
+- `personalization_checked`
+- `revision_created`
 
 ## Verify
 

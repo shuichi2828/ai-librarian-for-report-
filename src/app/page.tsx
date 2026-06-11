@@ -19,6 +19,7 @@ import {
   UserRound,
   X
 } from "lucide-react";
+import { track } from "@vercel/analytics";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type {
   AssignmentDetails,
@@ -104,6 +105,10 @@ function copyText(reference: ReferenceItem) {
   return [reference.apa7, reference.abstractOrMetadataSummary, reference.whyUseful, url].filter(Boolean).join("\n");
 }
 
+function trackUsage(eventName: string, properties: Record<string, string | number | boolean | null | undefined> = {}) {
+  track(eventName, properties);
+}
+
 export default function Home() {
   const [user, setUser] = useState<GuestUser | null>(null);
   const [loginName, setLoginName] = useState("");
@@ -185,6 +190,7 @@ export default function Home() {
     };
     setUser(nextUser);
     window.localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+    trackUsage("guest_login", { hasAtSign: name.includes("@") });
   }
 
   function logout() {
@@ -272,6 +278,16 @@ export default function Home() {
       const result = (await response.json()) as ContentPointsResponse;
       setContentPoints(result.points);
       setSelectedContentPointIds(result.points.slice(0, 5).map((point) => point.id));
+      trackUsage("content_points_created", {
+        outputLanguage,
+        topicLength: topic.length,
+        hasAssignmentPrompt: details.assignmentPrompt.trim().length > 0,
+        hasUserOpinion: details.userOpinion.trim().length > 0,
+        hasMustInclude: details.mustInclude.trim().length > 0,
+        selectedPdfThemes: selectedPdfThemes().length,
+        pointCount: result.points.length,
+        usedFallback: result.usedFallback
+      });
     } catch {
       setError("Could not create content suggestions.");
     } finally {
@@ -313,6 +329,13 @@ export default function Home() {
       const result = (await response.json()) as PlansResponse;
       setPlans(result.candidates);
       setSelectedPlanId(result.candidates[0]?.id);
+      trackUsage("report_plans_created", {
+        outputLanguage,
+        contentPointCount: selectedContentPoints().length,
+        pdfThemeCount: selectedPdfThemes().length,
+        planCount: result.candidates.length,
+        usedFallback: result.usedFallback
+      });
     } catch {
       setError("Could not create report plans.");
     } finally {
@@ -352,6 +375,13 @@ export default function Home() {
       setAlternatives(result.alternativeKeywords);
       setRefinements(result.refinementSuggestions);
       setTotalReviewed(result.totalCandidatesReviewed);
+      trackUsage("papers_found", {
+        outputLanguage,
+        referenceCount: result.references.length,
+        selectedReferenceCount: Math.min(4, result.references.length),
+        warningCount: result.warnings.length,
+        totalReviewed: result.totalCandidatesReviewed
+      });
 
       if (result.references.length > 0) {
         const entry: HistoryEntry = {
@@ -399,6 +429,14 @@ export default function Home() {
       setPdfInsight(result);
       setPdfMode(result.extractionMode);
       setSelectedPdfThemeIds(result.themes.slice(0, 2).map((theme) => theme.id));
+      trackUsage("pdf_read", {
+        outputLanguage,
+        forceOcr: forcePdfOcr,
+        extractionMode: result.extractionMode,
+        textLength: result.textLength,
+        themeCount: result.themes.length,
+        usedFallback: result.usedFallback
+      });
     } catch {
       setError("Could not read this PDF. Please try OCR mode or a smaller text-based PDF.");
     } finally {
@@ -440,6 +478,14 @@ export default function Home() {
       setReportOutline(result.outline);
       setReportDraft(null);
       clearRevisionFlow();
+      trackUsage("outline_created", {
+        outputLanguage,
+        selectedReferenceCount: selectedReferences.length,
+        contentPointCount: selectedContentPoints().length,
+        pdfThemeCount: selectedPdfThemes().length,
+        sectionCount: result.outline.sections.length,
+        usedFallback: result.usedFallback
+      });
     } catch {
       setError("Could not create the report outline.");
     } finally {
@@ -482,6 +528,15 @@ export default function Home() {
       const result = (await response.json()) as DraftResponse;
       setReportDraft(result.draft);
       clearRevisionFlow();
+      trackUsage("draft_created", {
+        outputLanguage,
+        selectedReferenceCount: selectedReferences.length,
+        targetWordCount: draftOptions.targetWordCount,
+        languageLevel: draftOptions.languageLevel,
+        humanLike: draftOptions.humanLike,
+        hasOtherConditions: draftOptions.otherConditions.trim().length > 0,
+        usedFallback: result.usedFallback
+      });
     } catch {
       setError("Could not create the report draft.");
     } finally {
@@ -523,6 +578,12 @@ export default function Home() {
       const result = (await response.json()) as PersonalizationResponse;
       setPersonalizationCheck(result.check);
       setSelectedImprovementIds(result.check.points.filter((point) => point.priority === "high").map((point) => point.id));
+      trackUsage("personalization_checked", {
+        outputLanguage,
+        improvementCount: result.check.points.length,
+        highPriorityCount: result.check.points.filter((point) => point.priority === "high").length,
+        usedFallback: result.usedFallback
+      });
     } catch {
       setError("Could not check the draft.");
     } finally {
@@ -587,6 +648,13 @@ export default function Home() {
 
       const result = (await response.json()) as RevisionResponse;
       setRevisedDraft(result.draft);
+      trackUsage("revision_created", {
+        outputLanguage,
+        selectedImprovementCount: improvementsForRequest.length,
+        hasOtherImprovement: customImprovements.length > 0,
+        selectedReferenceCount: selectedReferences.length,
+        usedFallback: result.usedFallback
+      });
     } catch {
       setError("Could not revise the report draft.");
     } finally {
