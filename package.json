@@ -10,6 +10,7 @@
     "test": "vitest run --config vitest.config.mjs"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "fast-xml-parser": "^5.8.0",
     "lucide-react": "^0.475.0",
     "next": "^15.1.6",
