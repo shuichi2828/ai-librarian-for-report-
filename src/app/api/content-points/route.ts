@@ -17,7 +17,7 @@ const pdfThemeSchema = z.object({
 
 const requestSchema = z.object({
   topic: z.string().trim().min(2).max(300),
-  outputLanguage: z.enum(["ja", "en", "auto"]).default("auto"),
+  outputLanguage: z.enum(["ja", "en", "auto"]).default("ja"),
   details: z.object({
     assignmentPrompt: z.string().default(""),
     userOpinion: z.string().default(""),

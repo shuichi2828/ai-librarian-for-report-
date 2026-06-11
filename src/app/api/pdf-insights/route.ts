@@ -9,7 +9,7 @@ import { rateLimit } from "@/lib/rateLimit";
 export const runtime = "nodejs";
 
 const fieldsSchema = z.object({
-  outputLanguage: z.enum(["ja", "en", "auto"]).default("auto"),
+  outputLanguage: z.enum(["ja", "en", "auto"]).default("ja"),
   avoidThemes: z.array(z.string()).default([]),
   forceOcr: z.boolean().default(false)
 });
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   }
 
   const fields = fieldsSchema.safeParse({
-    outputLanguage: formData.get("outputLanguage") || "auto",
+    outputLanguage: formData.get("outputLanguage") || "ja",
     avoidThemes: JSON.parse(String(formData.get("avoidThemes") || "[]")) as string[],
     forceOcr: String(formData.get("forceOcr") || "false") === "true"
   });

@@ -64,7 +64,7 @@ const requestSchema = z.object({
   plan: planSchema,
   references: z.array(referenceSchema).max(10).default([]),
   contentPoints: z.array(contentPointSchema).max(12).default([]),
-  outputLanguage: z.enum(["ja", "en"]).default("en")
+  outputLanguage: z.enum(["ja", "en"]).default("ja")
 });
 
 export async function POST(request: Request) {

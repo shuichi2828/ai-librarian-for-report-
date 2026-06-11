@@ -27,7 +27,7 @@ const candidateSchema = z.object({
 
 const requestSchema = z.object({
   candidate: candidateSchema,
-  outputLanguage: z.enum(["ja", "en", "auto"]).default("auto"),
+  outputLanguage: z.enum(["ja", "en", "auto"]).default("ja"),
   citationStyle: z.literal("apa7").default("apa7")
 });
 

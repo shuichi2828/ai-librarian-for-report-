@@ -92,7 +92,7 @@ const requestSchema = z.object({
   contentPoints: z.array(contentPointSchema).max(12).default([]),
   outline: outlineSchema,
   options: draftOptionsSchema,
-  outputLanguage: z.enum(["ja", "en"]).default("en")
+  outputLanguage: z.enum(["ja", "en"]).default("ja")
 });
 
 export async function POST(request: Request) {

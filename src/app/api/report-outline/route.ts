@@ -62,7 +62,7 @@ const requestSchema = z.object({
   references: z.array(referenceSchema).max(8).default([]),
   pdfThemes: z.array(pdfThemeSchema).max(6).default([]),
   contentPoints: z.array(contentPointSchema).max(12).default([]),
-  outputLanguage: z.enum(["ja", "en"]).default("en")
+  outputLanguage: z.enum(["ja", "en"]).default("ja")
 });
 
 export async function POST(request: Request) {

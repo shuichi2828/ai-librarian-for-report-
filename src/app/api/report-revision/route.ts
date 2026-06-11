@@ -84,7 +84,7 @@ const requestSchema = z.object({
   selectedImprovements: z.array(improvementSchema).min(1).max(10),
   customImprovements: z.array(z.string().min(1).max(500)).max(5).default([]),
   options: draftOptionsSchema,
-  outputLanguage: z.enum(["ja", "en"]).default("en")
+  outputLanguage: z.enum(["ja", "en"]).default("ja")
 });
 
 export async function POST(request: Request) {

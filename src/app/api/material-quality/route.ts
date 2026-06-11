@@ -25,7 +25,7 @@ const detailsSchema = z.object({
 
 const requestSchema = z.object({
   topic: z.string().trim().min(2).max(300),
-  outputLanguage: z.enum(["ja", "en", "auto"]).default("auto"),
+  outputLanguage: z.enum(["ja", "en", "auto"]).default("ja"),
   details: detailsSchema,
   pdfThemes: z.array(pdfThemeSchema).default([])
 });

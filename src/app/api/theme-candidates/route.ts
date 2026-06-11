@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 const requestSchema = z.object({
   topic: z.string().trim().min(2).max(300),
-  outputLanguage: z.enum(["ja", "en", "auto"]).default("auto"),
+  outputLanguage: z.enum(["ja", "en", "auto"]).default("ja"),
   answers: z
     .array(
       z.object({

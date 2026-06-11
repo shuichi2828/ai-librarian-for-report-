@@ -20,6 +20,12 @@ const DEFAULT_MODEL = "gpt-5.4-mini";
 
 type JsonSchema = Record<string, unknown>;
 
+function languageInstruction(outputLanguage: "ja" | "en") {
+  return outputLanguage === "ja"
+    ? "Output language: Japanese. Use natural Japanese for every user-visible field. Do not switch to English except for paper titles, author names, journal names, DOI/URLs, search keywords, and established technical terms."
+    : "Output language: English.";
+}
+
 async function generateStructured<T>(prompt: string, schema: JsonSchema): Promise<T | null> {
   const apiKey = process.env.OPENAI_API_KEY;
 
@@ -152,7 +158,7 @@ export async function generateLibrarianQuestions(topic: string, outputLanguage: 
     "The goal is to turn a vague idea into a concrete report framework before searching papers.",
     "Return 5 or 6 short questions. Include both choice and free-text questions.",
     "At least one question must ask whether the student wants to connect another topic, and a later text question must capture that related topic.",
-    `Output language: ${outputLanguage}.`,
+    languageInstruction(outputLanguage),
     `Student topic: ${topic}`
   ].join("\n");
 
@@ -197,7 +203,7 @@ export async function generatePdfInsights(
     "Summarize the document and extract important report-worthy themes.",
     "Themes must be grounded only in the supplied PDF text. Do not invent claims.",
     "If avoid themes are provided, extract different but still important themes where possible.",
-    `Output language: ${outputLanguage}.`,
+    languageInstruction(outputLanguage),
     `Avoid themes: ${JSON.stringify(avoidThemes)}`,
     `PDF text excerpt: ${pdfText.slice(0, 24000)}`
   ].join("\n");
@@ -254,7 +260,7 @@ export async function generatePdfInsightsFromPdfFile(
           "Summarize the document and extract important report-worthy themes grounded only in the PDF.",
           "If avoid themes are provided, extract different but still important themes where possible.",
           "Keep evidence excerpts short.",
-          `Output language: ${outputLanguage}.`,
+          languageInstruction(outputLanguage),
           `Avoid themes: ${JSON.stringify(avoidThemes)}`
         ].join("\n")
       }
@@ -303,7 +309,7 @@ export async function generateContentPoints(
     "Use the assignment prompt, student's tentative opinion, must-include points, report preferences, material notes, and PDF themes when available.",
     "Respect report preferences such as personal experience, paper citations, objective facts, course content, comparison, policy, and critical discussion.",
     "Include points that support the student's view and at least one point that complicates or challenges it.",
-    `Output language for title and description: ${outputLanguage}.`,
+    languageInstruction(outputLanguage),
     `Research topic: ${topic}`,
     `Assignment details JSON: ${JSON.stringify(details)}`,
     `PDF themes JSON: ${JSON.stringify(pdfThemes)}`
@@ -373,7 +379,7 @@ export async function generateMaterialQualityCheck(
     "Suggest selectable material additions that would make the plan more specific.",
     "Include report preference guidance. Preferences may include personal experience, paper citation focus, objective facts, course content, comparison, policy/practice, or critical discussion.",
     "Do not ask for private sensitive data.",
-    `Output language: ${outputLanguage}.`,
+    languageInstruction(outputLanguage),
     `Research topic: ${topic}`,
     `Assignment details JSON: ${JSON.stringify(details)}`,
     `PDF themes JSON: ${JSON.stringify(pdfThemes)}`
@@ -430,7 +436,7 @@ export async function generateThemeCandidates(
     "If combineCandidateIds are provided, create at least one plan that mixes the strongest compatible parts of those plans.",
     "When refining, preserve useful parts the student liked, remove weak parts, and make the plans more flexible and report-ready.",
     "Do not invent bibliography entries.",
-    `Output language for title, question, and reason: ${outputLanguage}.`,
+    languageInstruction(outputLanguage),
     `Student topic: ${topic}`,
     `Interview answers JSON: ${JSON.stringify(answers)}`,
     `Selected PDF themes JSON: ${JSON.stringify(pdfThemes)}`,
@@ -495,7 +501,7 @@ export async function generateReportOutline(
     "You are an academic librarian helping a student build a report outline.",
     "Use the chosen report plan, selected content points, selected PDF themes, and selected verified papers.",
     "Every section should say which selected papers support it using paperIds.",
-    `Output language: ${outputLanguage}.`,
+    languageInstruction(outputLanguage),
     `Report plan JSON: ${JSON.stringify(plan)}`,
     `Selected content points JSON: ${JSON.stringify(contentPoints)}`,
     `Selected PDF themes JSON: ${JSON.stringify(pdfThemes)}`,
@@ -549,7 +555,7 @@ export async function generateReportDraft(
     "If a paper only has metadata summary, avoid detailed claims that would require reading the full paper.",
     "If writingStyle is academic, use formal academic prose, clear topic sentences, cautious claims, and transitions suitable for a university report.",
     "Human-like means natural, readable academic prose; do not optimize for bypassing AI detection.",
-    `Output language: ${outputLanguage}.`,
+    languageInstruction(outputLanguage),
     `Target word count: ${options.targetWordCount}.`,
     `Language level: ${options.languageLevel}. High = advanced academic, middle = clear undergraduate, low = simple and accessible.`,
     `Writing style: ${options.writingStyle}.`,
@@ -614,7 +620,7 @@ export async function generatePersonalizationCheck(
     "Do not judge whether it is AI-written and do not provide advice for bypassing AI detection.",
     "Focus on adding the student's opinion, course context, concrete examples, careful use of selected papers, counterarguments, and clearer structure.",
     "Return selectable improvement points. Each point should be concrete enough that the student can choose it before revision.",
-    `Output language: ${outputLanguage}.`,
+    languageInstruction(outputLanguage),
     `Report plan JSON: ${JSON.stringify(plan)}`,
     `Selected content points JSON: ${JSON.stringify(contentPoints)}`,
     `Selected papers JSON: ${JSON.stringify(safeReferences)}`,
@@ -668,7 +674,7 @@ export async function generateRevisedReportDraft(
     "If no selected papers are provided, preserve PDF-only framing and clearly avoid external-paper citations.",
     "If a source only has metadata, avoid detailed claims that require full-text reading.",
     "If writingStyle is academic, revise toward formal academic prose, cautious claims, and clearer paragraph-level argumentation.",
-    `Output language: ${outputLanguage}.`,
+    languageInstruction(outputLanguage),
     `Target word count: ${options.targetWordCount}.`,
     `Language level: ${options.languageLevel}.`,
     `Writing style: ${options.writingStyle}.`,
@@ -728,7 +734,7 @@ export async function enrichReferences(
   const prompt = [
     "You summarize only verified bibliographic metadata supplied by the system.",
     "If no abstract is present, explicitly say the summary is based on metadata, and do not imply you read the full paper.",
-    `Output language: ${outputLanguage}.`,
+    languageInstruction(outputLanguage),
     `Student research question: ${researchQuestion}`,
     `References JSON: ${JSON.stringify(metadata)}`
   ].join("\n");
