@@ -617,7 +617,10 @@ export default function Home() {
           body: formData
         });
 
-        if (!response.ok) throw new Error("pdf");
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(payload?.error || `${file.name}を読み込めませんでした。`);
+        }
 
         const result = (await response.json()) as PdfResponse;
         results.push({
@@ -651,8 +654,9 @@ export default function Home() {
         themeCount: combined.themes.length,
         usedFallback: results.some((result) => result.usedFallback)
       });
-    } catch {
-      setError("PDFを読み込めませんでした。PDFを3件以内にする、容量を小さくする、またはOCRモードを試してください。");
+    } catch (pdfError) {
+      const message = pdfError instanceof Error ? pdfError.message : "PDFを読み込めませんでした。";
+      setError(`${message} PDFを3件以内にする、容量を15MB以内にする、またはOCRモードも試してください。`);
     } finally {
       setStatus("idle");
     }
