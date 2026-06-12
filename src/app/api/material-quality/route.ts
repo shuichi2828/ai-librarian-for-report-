@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   const generated = await generateMaterialQualityCheck(topic, details, pdfThemes, language);
 
   return NextResponse.json({
-    check: generated ?? fallbackMaterialQualityCheck(topic, details, language),
+    check: generated ?? fallbackMaterialQualityCheck(topic, details, language, pdfThemes),
     outputLanguage: language,
     usedFallback: !generated
   });

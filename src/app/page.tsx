@@ -125,7 +125,7 @@ const UI_TEXT = {
     loginIntro: "レポート作成を始める前に、言語を選んでください。",
     loginNameHelp: "名前またはメールアドレスを入力して始めましょう。",
     loginNameLabel: "名前またはメールアドレス",
-    loginNamePlaceholder: "student@example.com",
+    loginNamePlaceholder: "",
     loginStart: "始める",
     history: "履歴",
     clearHistory: "履歴を削除",
@@ -133,24 +133,24 @@ const UI_TEXT = {
     logout: "ログアウト",
     stepAria: "作成ステップ",
     materialSection: "1. 材料を入れる",
-    assignmentPrompt: "課題文",
-    assignmentPromptHelp: "先生の指示やレポート課題をそのまま貼り付けます。",
-    assignmentPromptPlaceholder: "課題文を貼り付け",
-    userOpinion: "自分の意見・仮の主張",
-    userOpinionHelp: "まだ曖昧でも大丈夫です。考えたい方向を書きます。",
-    userOpinionPlaceholder: "例: 大学はAIを禁止するより、責任ある使い方を教えるべき",
-    mustInclude: "必ず入れたい内容",
-    mustIncludeHelp: "授業キーワード、事例、使いたい概念などを書きます。",
-    mustIncludePlaceholder: "AIリテラシー、剽窃、大学のガイドライン",
+    assignmentPrompt: "課題の内容",
+    assignmentPromptHelp: "",
+    assignmentPromptPlaceholder: "",
+    userOpinion: "メモ",
+    userOpinionHelp: "",
+    userOpinionPlaceholder: "",
+    mustInclude: "レポートに含めたい内容",
+    mustIncludeHelp: "",
+    mustIncludePlaceholder: "",
     reportPreferences: "レポートの好み",
-    addPreferencePlaceholder: "自分の好みを追加（例: 地元の事例を入れたい）",
+    addPreferencePlaceholder: "",
     add: "追加",
     materialCheck: "材料チェック",
     materialCheckHelp: "プランを作る前に、テーマ・意見・材料が十分に具体的か確認します。",
     runCheck: "チェックする",
     materialWeaknesses: "もう少し具体化したい点",
     recommendedDirection: "おすすめの方向性",
-    quickQuestions: "すぐ答えられる質問",
+    quickQuestions: "追加質問",
     chooseOption: "選択してください",
     additionalMaterial: "追加できる材料",
     addSelectedMaterial: "選んだ材料を追加",
@@ -163,18 +163,18 @@ const UI_TEXT = {
     mixedMode: "複数方式",
     pdfTextMode: "PDF内テキスト",
     contentPointsSection: "2. 内容候補を選ぶ",
-    contentPointsPlaceholder: "テーマと材料を入れて「内容候補を作る」を押すと、レポートに入れる候補が表示されます。",
-    addContentPointPlaceholder: "自分で内容候補を追加",
+    contentPointsPlaceholder: "材料チェック後に内容候補を作ると、レポートに入れる候補が表示されます。",
+    addContentPointPlaceholder: "",
     createPlan: "プランを作る",
     planSection: "3. プランを選ぶ・編集する",
     editCount: "編集",
     editCountSuffix: "回",
     refinePlanLabel: "プランをもっと自分向けに変える",
-    refinePlanPlaceholder: "例: プラン1は良いが、もっと授業内容に寄せたい。プラン2の比較視点も混ぜたい。",
+    refinePlanPlaceholder: "",
     quickCritical: "批判的にする",
     quickCriticalInstruction: "各プランに反対意見や限界を入れて、批判的考察がしやすい形にしてください。",
     quickCourse: "授業寄りにする",
-    quickCourseInstruction: "課題文や授業内容との接続がはっきり見えるプランにしてください。",
+    quickCourseInstruction: "課題内容や授業内容との接続がはっきり見えるプランにしてください。",
     quickCompare: "比較型にする",
     quickCompareInstruction: "比較軸を明確にして、賛否や事例を比べやすいプランにしてください。",
     quickSimple: "簡単にする",
@@ -200,7 +200,7 @@ const UI_TEXT = {
     inTextCitation: "本文中の引用例",
     citationPage: "引用ページ",
     citationPageHelp: "Chicagoでは、本文で使う箇所のページ番号を入れてください。",
-    citationPagePlaceholder: "例: 45 または 1842-43",
+    citationPagePlaceholder: "",
     citationPageMissing: "ページ番号を入力すると、Chicago形式の本文中引用が表示されます。",
     citationFormat: "引用形式",
     citationFormatHelp: "参考文献の見た目とコピー内容を選べます。",
@@ -226,7 +226,7 @@ const UI_TEXT = {
     loginIntro: "Choose your language before starting your report.",
     loginNameHelp: "Enter your name or email address to begin.",
     loginNameLabel: "Name or email address",
-    loginNamePlaceholder: "student@example.com",
+    loginNamePlaceholder: "",
     loginStart: "Start",
     history: "History",
     clearHistory: "Clear history",
@@ -234,24 +234,24 @@ const UI_TEXT = {
     logout: "Log out",
     stepAria: "Creation steps",
     materialSection: "1. Add Material",
-    assignmentPrompt: "Assignment prompt",
-    assignmentPromptHelp: "Paste the teacher's instructions or the report assignment as-is.",
-    assignmentPromptPlaceholder: "Paste the assignment prompt",
-    userOpinion: "My opinion / draft thesis",
-    userOpinionHelp: "It can still be rough. Write the direction you want to explore.",
-    userOpinionPlaceholder: "Example: Universities should teach responsible AI use instead of banning AI.",
-    mustInclude: "Required content",
-    mustIncludeHelp: "Add course keywords, examples, concepts, or points you must use.",
-    mustIncludePlaceholder: "AI literacy, plagiarism, university guidelines",
+    assignmentPrompt: "Assignment details",
+    assignmentPromptHelp: "",
+    assignmentPromptPlaceholder: "",
+    userOpinion: "Notes",
+    userOpinionHelp: "",
+    userOpinionPlaceholder: "",
+    mustInclude: "Content to include",
+    mustIncludeHelp: "",
+    mustIncludePlaceholder: "",
     reportPreferences: "Report preferences",
-    addPreferencePlaceholder: "Add your own preference, e.g. include a local case",
+    addPreferencePlaceholder: "",
     add: "Add",
     materialCheck: "Material Check",
     materialCheckHelp: "Before creating a plan, check whether the topic, opinion, and material are concrete enough.",
     runCheck: "Check",
     materialWeaknesses: "Points to make more specific",
     recommendedDirection: "Recommended direction",
-    quickQuestions: "Quick questions",
+    quickQuestions: "Additional questions",
     chooseOption: "Choose an option",
     additionalMaterial: "Material you can add",
     addSelectedMaterial: "Add selected material",
@@ -264,14 +264,14 @@ const UI_TEXT = {
     mixedMode: "Mixed methods",
     pdfTextMode: "Embedded PDF text",
     contentPointsSection: "2. Choose Content Points",
-    contentPointsPlaceholder: "Add a topic and material, then create content points to see candidates for the report.",
-    addContentPointPlaceholder: "Add your own content point",
+    contentPointsPlaceholder: "After checking your material, create content points to see candidates for the report.",
+    addContentPointPlaceholder: "",
     createPlan: "Create plan",
     planSection: "3. Choose and Edit a Plan",
     editCount: "Edited",
     editCountSuffix: " times",
     refinePlanLabel: "Make the plan fit my report better",
-    refinePlanPlaceholder: "Example: Plan 1 is good, but connect it more to class content. Also mix in the comparison angle from Plan 2.",
+    refinePlanPlaceholder: "",
     quickCritical: "Make it critical",
     quickCriticalInstruction: "Add counterarguments and limitations to each plan so it is easier to write critical analysis.",
     quickCourse: "Connect to class",
@@ -301,7 +301,7 @@ const UI_TEXT = {
     inTextCitation: "In-text citation",
     citationPage: "Citation page",
     citationPageHelp: "For Chicago, enter the exact page used in the text.",
-    citationPagePlaceholder: "e.g. 45 or 1842-43",
+    citationPagePlaceholder: "",
     citationPageMissing: "Enter a page number to show the Chicago in-text citation.",
     citationFormat: "Citation style",
     citationFormatHelp: "Choose how references are displayed and copied.",
@@ -546,7 +546,7 @@ export default function Home() {
     selectedOutputLanguage === "ja"
       ? [
           { id: 0 as const, eyebrow: "テーマ", title: "レポートのテーマを決める", short: "テーマ", done: topic.trim().length > 0 },
-          { id: 1 as const, eyebrow: "Step 1", title: "レポート材料の収集", short: "材料収集", done: details.assignmentPrompt.trim().length > 0 || details.userOpinion.trim().length > 0 || selectedPdfThemes().length > 0 },
+          { id: 1 as const, eyebrow: "Step 1", title: "レポート材料の収集", short: "材料収集", done: details.assignmentPrompt.trim().length > 0 || details.mustInclude.trim().length > 0 || allPdfThemes().length > 0 },
           { id: 2 as const, eyebrow: "Step 2", title: "内容の絞り込み", short: "内容整理", done: selectedContentPointIds.length > 0 },
           { id: 3 as const, eyebrow: "Step 3", title: "プランを作成", short: "プラン", done: Boolean(selectedPlan) },
           { id: 4 as const, eyebrow: "Step 4", title: "参考文献を探す", short: "参考文献", done: selectedReferenceIds.length > 0 },
@@ -554,17 +554,25 @@ export default function Home() {
         ]
       : [
           { id: 0 as const, eyebrow: "Theme", title: "Choose a report theme", short: "Theme", done: topic.trim().length > 0 },
-          { id: 1 as const, eyebrow: "Step 1", title: "Collect report material", short: "Material", done: details.assignmentPrompt.trim().length > 0 || details.userOpinion.trim().length > 0 || selectedPdfThemes().length > 0 },
+          { id: 1 as const, eyebrow: "Step 1", title: "Collect report material", short: "Material", done: details.assignmentPrompt.trim().length > 0 || details.mustInclude.trim().length > 0 || allPdfThemes().length > 0 },
           { id: 2 as const, eyebrow: "Step 2", title: "Narrow the content", short: "Narrow", done: selectedContentPointIds.length > 0 },
           { id: 3 as const, eyebrow: "Step 3", title: "Create a plan", short: "Plan", done: Boolean(selectedPlan) },
           { id: 4 as const, eyebrow: "Step 4", title: "Find references", short: "References", done: selectedReferenceIds.length > 0 },
           { id: 5 as const, eyebrow: "Step 5", title: "Create a draft", short: "Draft", done: Boolean(reportOutline || reportDraft) }
         ];
   const activeGuide = guideSteps.find((step) => step.id === activeStep) ?? guideSteps[0];
+  function lengthScore(value: string, usefulLength: number, strongLength: number) {
+    const length = value.trim().length;
+    if (length === 0) return 0;
+    const base = Math.min(70, Math.round((length / strongLength) * 70));
+    const bonus = length >= usefulLength ? 20 : 8;
+    return Math.min(95, base + bonus);
+  }
+
   const materialMetrics = [
-    { label: text.assignmentPrompt, value: details.assignmentPrompt.trim().length > 0 ? 100 : 0 },
-    { label: text.mustInclude, value: details.mustInclude.trim().length > 0 || selectedPdfThemes().length > 0 ? 100 : 0 },
-    { label: text.reportPreferences, value: details.userOpinion.trim().length > 0 || details.reportPreferences.length > 0 ? 100 : 0 }
+    { label: text.assignmentPrompt, value: lengthScore(details.assignmentPrompt, 40, 220) },
+    { label: text.mustInclude, value: Math.max(lengthScore(details.mustInclude, 30, 160), Math.min(90, allPdfThemes().length * 15)) },
+    { label: text.reportPreferences, value: Math.min(95, details.reportPreferences.length * 18 + lengthScore(details.materialNotes, 30, 180)) }
   ];
 
   useEffect(() => {
@@ -649,6 +657,10 @@ export default function Home() {
     return pdfInsight?.themes.filter((theme) => selectedPdfThemeIds.includes(theme.id)) ?? [];
   }
 
+  function allPdfThemes() {
+    return pdfInsight?.themes ?? [];
+  }
+
   function selectedContentPoints() {
     return contentPoints.filter((point) => selectedContentPointIds.includes(point.id));
   }
@@ -686,18 +698,18 @@ export default function Home() {
     const labels =
       selectedOutputLanguage === "ja"
         ? {
-            assignmentPrompt: "課題文",
+            assignmentPrompt: "課題の内容",
             userOpinion: "自分の意見",
-            mustInclude: "必ず入れたい内容",
+            mustInclude: "レポートに含めたい内容",
             reportPreferences: "レポートの好み",
             materialNotes: "材料チェックで追加した内容",
             pdfThemes: "選択したPDFテーマ",
             contentPoints: "選択した内容候補"
           }
         : {
-            assignmentPrompt: "Assignment prompt",
+            assignmentPrompt: "Assignment details",
             userOpinion: "My opinion",
-            mustInclude: "Required content",
+            mustInclude: "Content to include",
             reportPreferences: "Report preferences",
             materialNotes: "Added material from material check",
             pdfThemes: "Selected PDF themes",
@@ -750,7 +762,7 @@ export default function Home() {
       const response = await fetch("/api/content-points", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, outputLanguage: selectedOutputLanguage, details, pdfThemes: selectedPdfThemes() })
+        body: JSON.stringify({ topic, outputLanguage: selectedOutputLanguage, details, pdfThemes: allPdfThemes() })
       });
 
       if (!response.ok) throw new Error("points");
@@ -769,7 +781,7 @@ export default function Home() {
         hasMustInclude: details.mustInclude.trim().length > 0,
         preferenceCount: details.reportPreferences.length,
         hasMaterialNotes: details.materialNotes.trim().length > 0,
-        selectedPdfThemes: selectedPdfThemes().length,
+        selectedPdfThemes: allPdfThemes().length,
         pointCount: result.points.length,
         usedFallback: result.usedFallback
       });
@@ -797,7 +809,7 @@ export default function Home() {
           topic,
           outputLanguage: selectedOutputLanguage,
           details,
-          pdfThemes: selectedPdfThemes()
+          pdfThemes: allPdfThemes()
         })
       });
 
@@ -813,6 +825,7 @@ export default function Home() {
         questionCount: result.check.questions.length,
         suggestionCount: result.check.suggestions.length,
         preferenceCount: details.reportPreferences.length,
+        pdfThemeCount: allPdfThemes().length,
         usedFallback: result.usedFallback
       });
     } catch {
@@ -999,6 +1012,8 @@ export default function Home() {
 
     setStatus("pdf");
     setError(undefined);
+    const isAdditionalRead = avoidThemes.length > 0 && Boolean(pdfInsight);
+    const runPrefix = isAdditionalRead ? `extra-${Date.now()}` : "base";
 
     try {
       const results: PdfResponse[] = [];
@@ -1026,7 +1041,7 @@ export default function Home() {
           documentTitle: result.documentTitle || file.name,
           themes: result.themes.map((theme) => ({
             ...theme,
-            id: `pdf-${index + 1}-${theme.id}`,
+            id: `${runPrefix}-pdf-${index + 1}-${theme.id}`,
             title: pdfFiles.length > 1 ? `PDF${index + 1}: ${theme.title}` : theme.title,
             evidence: `${file.name}: ${theme.evidence}`
           }))
@@ -1040,16 +1055,41 @@ export default function Home() {
       };
 
       const modes = new Set(results.map((result) => result.extractionMode));
-      setPdfInsight(combined);
+      const nextInsight = isAdditionalRead && pdfInsight
+        ? {
+            documentTitle: pdfInsight.documentTitle,
+            summary: [
+              pdfInsight.summary,
+              selectedOutputLanguage === "ja" ? "追加抽出:" : "Additional extraction:",
+              combined.summary
+            ].join("\n\n"),
+            themes: [
+              ...pdfInsight.themes,
+              ...combined.themes.filter(
+                (theme) =>
+                  !pdfInsight.themes.some(
+                    (previous) => previous.title.replace(/^PDF\d+:\s*/, "") === theme.title.replace(/^PDF\d+:\s*/, "")
+                  )
+              )
+            ].slice(0, 18)
+          }
+        : combined;
+
+      setPdfInsight(nextInsight);
       setPdfMode(modes.size === 1 ? results[0].extractionMode : "mixed");
-      setSelectedPdfThemeIds(combined.themes.slice(0, Math.min(4, combined.themes.length)).map((theme) => theme.id));
+      setSelectedPdfThemeIds((current) => {
+        const addedIds = combined.themes.slice(0, Math.min(4, combined.themes.length)).map((theme) => theme.id);
+        const nextIds = isAdditionalRead ? [...current, ...addedIds] : addedIds;
+        return Array.from(new Set(nextIds)).filter((id) => nextInsight.themes.some((theme) => theme.id === id)).slice(0, 8);
+      });
       trackUsage("pdf_read", {
         outputLanguage: selectedOutputLanguage,
         fileCount: pdfFiles.length,
+        additionalRead: isAdditionalRead,
         forceOcr: forcePdfOcr,
         extractionMode: modes.size === 1 ? results[0].extractionMode : "mixed",
         textLength: results.reduce((total, result) => total + result.textLength, 0),
-        themeCount: combined.themes.length,
+        themeCount: nextInsight.themes.length,
         usedFallback: results.some((result) => result.usedFallback)
       });
     } catch (pdfError) {
@@ -1447,7 +1487,7 @@ export default function Home() {
           <p className="loginText">{text.loginIntro}</p>
           <form className="loginForm" onSubmit={login}>
             <label htmlFor="loginName">{text.loginNameHelp}</label>
-            <input id="loginName" value={loginName} onChange={(event) => setLoginName(event.target.value)} placeholder={text.loginNamePlaceholder} autoComplete="email" aria-label={text.loginNameLabel} />
+            <input id="loginName" value={loginName} onChange={(event) => setLoginName(event.target.value)} autoComplete="email" aria-label={text.loginNameLabel} />
             <button className="primaryButton" type="submit">
               <UserRound size={18} />
               {text.loginStart}
@@ -1558,7 +1598,6 @@ export default function Home() {
                   id="topic"
                   value={topic}
                   onChange={(event) => setTopic(event.target.value)}
-                  placeholder={selectedOutputLanguage === "ja" ? "例: 生成AIと大学教育" : "Example: Generative AI and university education"}
                 />
                 <button className="arrowButton" type="button" onClick={() => topic.trim() && setActiveStep(1)} aria-label={selectedOutputLanguage === "ja" ? "次の画面へ進む" : "Go to the next screen"}>
                   <ArrowRight size={22} />
@@ -1591,23 +1630,11 @@ export default function Home() {
           <div className="detailsGrid">
             <label className="questionCard">
               <span>{text.assignmentPrompt}</span>
-              <small>{text.assignmentPromptHelp}</small>
-              <textarea value={details.assignmentPrompt} onChange={(event) => setDetails({ ...details, assignmentPrompt: event.target.value })} placeholder={text.assignmentPromptPlaceholder} rows={4} />
-            </label>
-            <label className="questionCard">
-              <span>{text.userOpinion}</span>
-              <small>{text.userOpinionHelp}</small>
-              <textarea
-                value={details.userOpinion}
-                onChange={(event) => setDetails({ ...details, userOpinion: event.target.value })}
-                placeholder={text.userOpinionPlaceholder}
-                rows={4}
-              />
+              <textarea value={details.assignmentPrompt} onChange={(event) => setDetails({ ...details, assignmentPrompt: event.target.value })} rows={4} />
             </label>
             <label className="questionCard">
               <span>{text.mustInclude}</span>
-              <small>{text.mustIncludeHelp}</small>
-              <textarea value={details.mustInclude} onChange={(event) => setDetails({ ...details, mustInclude: event.target.value })} placeholder={text.mustIncludePlaceholder} rows={4} />
+              <textarea value={details.mustInclude} onChange={(event) => setDetails({ ...details, mustInclude: event.target.value })} rows={4} />
             </label>
           </div>
           <div className="preferenceBox">
@@ -1624,79 +1651,12 @@ export default function Home() {
               <input
                 value={customPreference}
                 onChange={(event) => setCustomPreference(event.target.value)}
-                placeholder={text.addPreferencePlaceholder}
               />
               <button className="secondaryButton compact" type="button" onClick={addCustomPreference}>
                 {text.add}
               </button>
             </div>
           </div>
-          <div className="materialCheckBox">
-            <div>
-              <strong>{text.materialCheck}</strong>
-              <p>{text.materialCheckHelp}</p>
-            </div>
-            <button className="primaryButton compact" type="button" onClick={checkMaterialAndContinue} disabled={busy}>
-              {status === "material" ? <Loader2 size={17} className="spin" /> : <CheckCircle2 size={17} />}
-              {text.runCheck}
-            </button>
-          </div>
-          {materialCheck && (
-            <div className="materialResult">
-              <div className="materialScore">
-                <b>{materialCheck.score}%</b>
-                <span>{materialCheck.verdict}</span>
-              </div>
-              <div className="materialColumns">
-                <section>
-                  <h3>{text.materialWeaknesses}</h3>
-                  {materialCheck.weaknesses.map((weakness) => (
-                    <p key={weakness}>{weakness}</p>
-                  ))}
-                  {materialCheck.recommendedPreferences.length > 0 && <small>{text.recommendedDirection}: {materialCheck.recommendedPreferences.join(", ")}</small>}
-                </section>
-                <section>
-                  <h3>{text.quickQuestions}</h3>
-                  <div className="materialQuestionList">
-                    {materialCheck.questions.map((question) => (
-                      <label className="materialQuestion" key={question.id}>
-                        <span>{question.label}</span>
-                        <small>{question.helpText}</small>
-                        {question.type === "choice" ? (
-                          <select value={materialQuestionAnswers[question.id] ?? ""} onChange={(event) => updateMaterialAnswer(question.id, event.target.value)}>
-                            <option value="">{text.chooseOption}</option>
-                            {question.options.map((option) => (
-                              <option value={option} key={option}>
-                                {option}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <textarea value={materialQuestionAnswers[question.id] ?? ""} onChange={(event) => updateMaterialAnswer(question.id, event.target.value)} rows={2} />
-                        )}
-                      </label>
-                    ))}
-                  </div>
-                </section>
-              </div>
-              <div className="materialSuggestionArea">
-                <h3>{text.additionalMaterial}</h3>
-                <div className="themeGrid">
-                  {materialCheck.suggestions.map((suggestion) => (
-                    <label className={selectedMaterialSuggestionIds.includes(suggestion.id) ? "selectCard selected" : "selectCard"} key={suggestion.id}>
-                      <input type="checkbox" checked={selectedMaterialSuggestionIds.includes(suggestion.id)} onChange={() => toggleMaterialSuggestion(suggestion.id)} />
-                      <span>{suggestion.title}</span>
-                      <small>{suggestion.description}</small>
-                      <em>{suggestion.preferenceFit}</em>
-                    </label>
-                  ))}
-                </div>
-                <button className="secondaryButton" type="button" onClick={applyMaterialEnhancements}>
-                  {text.addSelectedMaterial}
-                </button>
-              </div>
-            </div>
-          )}
         </section>
 
         <section className="pdfPane" aria-label={text.pdfSection}>
@@ -1763,6 +1723,16 @@ export default function Home() {
             </div>
           )}
         </section>
+        <div className="materialCheckBox stepPage">
+          <div>
+            <strong>{text.materialCheck}</strong>
+            {text.materialCheckHelp && <p>{text.materialCheckHelp}</p>}
+          </div>
+          <button className="primaryButton compact" type="button" onClick={checkMaterialAndContinue} disabled={busy}>
+            {status === "material" ? <Loader2 size={17} className="spin" /> : <CheckCircle2 size={17} />}
+            {text.runCheck}
+          </button>
+        </div>
           </>
         )}
 
@@ -1787,17 +1757,30 @@ export default function Home() {
             </div>
             {materialCheck ? (
               <div className="analysisSummary">
-                <strong>{materialCheck.verdict}</strong>
+                <div className="materialScore compactScore">
+                  <b>{materialCheck.score}%</b>
+                  <span>{materialCheck.verdict}</span>
+                </div>
+                <strong>{text.materialWeaknesses}</strong>
                 {materialCheck.weaknesses.map((weakness) => (
                   <p key={weakness}>{weakness}</p>
                 ))}
+                {materialCheck.recommendedPreferences.length > 0 && <small>{text.recommendedDirection}: {materialCheck.recommendedPreferences.join(", ")}</small>}
               </div>
             ) : (
               <div className="placeholderBlock">{selectedOutputLanguage === "ja" ? "Step 1でチェックすると、材料の分析結果がここに表示されます。" : "Check Step 1 to show the material analysis here."}</div>
             )}
+          </section>
+          )}
+
+          {activeStep === 2 && materialCheck && (
+          <section className="questionsPane" aria-label={text.quickQuestions}>
+            <div className="sectionHeader">
+              <MessageSquareText size={18} />
+              <h2>{text.quickQuestions}</h2>
+            </div>
             {materialCheck && (
               <div className="materialQuestionList">
-                <h3>{text.quickQuestions}</h3>
                 {materialCheck.questions.map((question) => (
                   <label className="materialQuestion" key={question.id}>
                     <span>{question.label}</span>
@@ -1818,11 +1801,29 @@ export default function Home() {
                 ))}
               </div>
             )}
+            {materialCheck.suggestions.length > 0 && (
+              <div className="materialSuggestionArea">
+                <h3>{text.additionalMaterial}</h3>
+                <div className="themeGrid">
+                  {materialCheck.suggestions.map((suggestion) => (
+                    <label className={selectedMaterialSuggestionIds.includes(suggestion.id) ? "selectCard selected" : "selectCard"} key={suggestion.id}>
+                      <input type="checkbox" checked={selectedMaterialSuggestionIds.includes(suggestion.id)} onChange={() => toggleMaterialSuggestion(suggestion.id)} />
+                      <span>{suggestion.title}</span>
+                      <small>{suggestion.description}</small>
+                      <em>{suggestion.preferenceFit}</em>
+                    </label>
+                  ))}
+                </div>
+                <button className="secondaryButton" type="button" onClick={applyMaterialEnhancements}>
+                  {text.addSelectedMaterial}
+                </button>
+              </div>
+            )}
           </section>
           )}
 
           {activeStep === 2 && (
-          <section aria-label={text.contentPointsSection}>
+          <section className="contentPointsPane" aria-label={text.contentPointsSection}>
             <div className="sectionHeader">
               <MessageSquareText size={18} />
               <h2>{text.contentPointsSection}</h2>
@@ -1844,7 +1845,7 @@ export default function Home() {
               )}
             </div>
             <div className="customPointRow">
-              <input value={customPoint} onChange={(event) => setCustomPoint(event.target.value)} placeholder={text.addContentPointPlaceholder} />
+              <input value={customPoint} onChange={(event) => setCustomPoint(event.target.value)} />
               <button className="secondaryButton compact" type="button" onClick={addCustomContentPoint}>
                 {text.add}
               </button>
@@ -1876,7 +1877,6 @@ export default function Home() {
                   <textarea
                     value={refinementInstruction}
                     onChange={(event) => setRefinementInstruction(event.target.value)}
-                    placeholder={text.refinePlanPlaceholder}
                     rows={3}
                   />
                 </label>
@@ -2062,7 +2062,6 @@ export default function Home() {
                           setReportDraft(null);
                           clearRevisionFlow();
                         }}
-                        placeholder={text.citationPagePlaceholder}
                       />
                     </label>
                   )}
@@ -2156,6 +2155,28 @@ export default function Home() {
               {status === "outline" ? <Loader2 size={18} className="spin" /> : <CheckCircle2 size={18} />}
               構成案を作る
             </button>
+            <div className="materialCheckBox">
+              <div>
+                <strong>{text.citationFormat}</strong>
+                <p>{text.citationFormatHelp}</p>
+              </div>
+              <select
+                value={citationStyle}
+                onChange={(event) => {
+                  setCitationStyle(event.target.value as CitationStyle);
+                  setReferences([]);
+                  setReferencePages({});
+                  setSelectedReferenceIds([]);
+                  setReportOutline(null);
+                  setReportDraft(null);
+                  clearRevisionFlow();
+                  setActiveStep(4);
+                }}
+              >
+                <option value="apa7">APA 7</option>
+                <option value="chicago">Chicago</option>
+              </select>
+            </div>
             {selectedReferenceIds.length === 0 && selectedPdfThemes().length > 0 && (
               <div className="notice">
                 <p>PDFの内容だけで構成案を作ります。論文引用を入れる場合は、参考文献を選んでください。</p>
@@ -2225,7 +2246,6 @@ export default function Home() {
                   <textarea
                     value={draftOptions.otherConditions}
                     onChange={(event) => setDraftOptions({ ...draftOptions, otherConditions: event.target.value })}
-                    placeholder="例: 反論を入れる、一人称を避ける、短めの段落にする"
                     rows={3}
                   />
                 </label>
@@ -2295,7 +2315,6 @@ export default function Home() {
                               setOtherImprovement(event.target.value);
                               setRevisedDraft(null);
                             }}
-                            placeholder="他に直したい点を書いてください。1行に1つでも大丈夫です。"
                             rows={3}
                           />
                         </label>

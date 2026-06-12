@@ -53,7 +53,7 @@ export function fallbackLibrarianQuestions(topic: string, outputLanguage: "ja" |
       id: "related-topic-detail",
       type: "text",
       label: ja ? "関連づけたいテーマがあれば書いてください。" : "Describe the related topic, if any.",
-      helpText: ja ? "例: 地方大学、著作権、就職活動、気候変動など。" : "Examples: regional universities, copyright, job hunting, climate change.",
+      helpText: ja ? "レポートで扱う対象を短く書いてください。" : "Briefly write the subject your report will cover.",
       required: false
     },
     {
@@ -68,7 +68,7 @@ export function fallbackLibrarianQuestions(topic: string, outputLanguage: "ja" |
       id: "interest",
       type: "text",
       label: ja ? "特に気になる点を一文で書いてください。" : "Write one sentence about what interests you most.",
-      helpText: ja ? `例: ${topic}が学生の学び方をどう変えるか知りたい。` : `Example: I want to know how ${topic} changes student learning.`,
+      helpText: ja ? "知りたいことや考えたい方向を短く書いてください。" : "Briefly write what you want to explore.",
       required: false
     }
   ];
@@ -132,7 +132,7 @@ export function fallbackContentPoints(topic: string, details: AssignmentDetails,
     .map<ContentPoint>((item, index) => ({
       id: `point-must-${index + 1}`,
       title: item,
-      description: ja ? "ユーザーが必ず入れたい内容です。" : "A must-include point provided by the user.",
+      description: ja ? "ユーザーがレポートに含めたい内容です。" : "Content the user wants to include in the report.",
       type: "custom",
       keywordsJa: [topic, item],
       keywordsEn: [topic, item],
@@ -162,20 +162,20 @@ export function fallbackContentPoints(topic: string, details: AssignmentDetails,
   return [...base, ...mustInclude, ...preferencePoints, ...pdfPoints].slice(0, 12);
 }
 
-export function fallbackMaterialQualityCheck(topic: string, details: AssignmentDetails, outputLanguage: "ja" | "en"): MaterialQualityCheck {
+export function fallbackMaterialQualityCheck(topic: string, details: AssignmentDetails, outputLanguage: "ja" | "en", pdfThemes: PdfTheme[] = []): MaterialQualityCheck {
   const ja = isJa(outputLanguage);
   const score =
-    25 +
-    Math.min(20, details.assignmentPrompt.trim().length / 12) +
-    Math.min(20, details.userOpinion.trim().length / 10) +
-    Math.min(15, details.mustInclude.trim().length / 12) +
-    Math.min(10, (details.reportPreferences ?? []).length * 4) +
-    Math.min(10, details.materialNotes.trim().length / 15);
+    15 +
+    Math.min(25, details.assignmentPrompt.trim().length / 10) +
+    Math.min(25, details.mustInclude.trim().length / 9) +
+    Math.min(15, pdfThemes.length * 5) +
+    Math.min(10, (details.reportPreferences ?? []).length * 3) +
+    Math.min(10, details.materialNotes.trim().length / 14);
 
   return {
     score: Math.round(Math.min(95, score)),
-    verdict: ja ? "使い始められる材料はあります。対象・立場・具体例を少し足すと、プランがさらに作りやすくなります。" : "The material can be used, but adding a target, stance, and concrete example will make the plans sharper.",
-    weaknesses: ja ? ["対象範囲がまだ広い可能性があります。", "自分の立場をもう少し明確にできます。", "授業内容や具体例を足すと説得力が上がります。"] : ["Target scope may still be broad.", "The student's position could be clearer.", "Course concepts or concrete examples may be missing."],
+    verdict: ja ? "使い始められる材料はあります。対象範囲、使う根拠、授業内容とのつながりを足すと、プランがさらに作りやすくなります。" : "The material can be used, but narrowing the scope, evidence, and course connection will make the plans sharper.",
+    weaknesses: ja ? ["対象範囲がまだ広い可能性があります。", "どの根拠を中心に使うかをもう少し選べます。", "授業内容や具体例を足すと説得力が上がります。"] : ["Target scope may still be broad.", "The central evidence could be selected more clearly.", "Course concepts or concrete examples may be missing."],
     questions: [
       {
         id: "target",
@@ -187,15 +187,15 @@ export function fallbackMaterialQualityCheck(topic: string, details: AssignmentD
       {
         id: "stance",
         type: "choice",
-        label: ja ? "今の立場に近いものはどれですか？" : "What position feels closest right now?",
-        helpText: ja ? "あとで変わっても大丈夫です。" : "It is okay if this changes later.",
-        options: ja ? ["賛成", "反対", "条件付きで賛成", "両面を比較したい", "まだ分からない"] : ["Support", "Oppose", "Conditional support", "Compare both sides", "Not sure yet"]
+        label: ja ? "中心に使いたい根拠はどれですか？" : "Which evidence should be central?",
+        helpText: ja ? "PDF・授業内容・論文検索のどれを重視するか決めます。" : "Choose whether PDFs, class material, or paper search should lead.",
+        options: ja ? ["PDFの内容", "授業内容", "論文引用", "自分の経験", "比較しながら決めたい"] : ["PDF content", "Course content", "Paper citations", "Personal experience", "Compare first"]
       },
       {
         id: "course-keyword",
         type: "text",
-        label: ja ? "授業キーワードや具体例を1つ足してください。" : "Add one course keyword or concrete class example.",
-        helpText: ja ? "課題とのつながりが見えやすくなります。" : "This helps the plan connect to the assignment.",
+        label: ja ? "課題と一番つなげたいキーワードを1つ足してください。" : "Add one keyword that should connect the report to the assignment.",
+        helpText: ja ? "授業内容・PDFテーマ・使いたい概念のどれでも大丈夫です。" : "This can be a course idea, PDF theme, or concept.",
         options: []
       }
     ],
@@ -203,7 +203,7 @@ export function fallbackMaterialQualityCheck(topic: string, details: AssignmentD
       {
         id: "material-course",
         title: ja ? "授業内容との接続" : "Course content focus",
-        description: ja ? "授業で扱った概念、課題文の語句、授業内の議論とつなげます。" : "Connect the report to course concepts, assignment wording, or class discussion.",
+        description: ja ? "授業で扱った概念、課題内容の語句、授業内の議論とつなげます。" : "Connect the report to course concepts, assignment wording, or class discussion.",
         preferenceFit: ja ? "授業に沿ったレポートに向いています。" : "Good for course-focused reports.",
         keywordsJa: [topic, "授業", "課題"],
         keywordsEn: [topic, "course", "assignment"]
@@ -452,8 +452,8 @@ export function fallbackPersonalizationCheck(
     {
       id: "improve-course",
       title: ja ? "授業内容とつなげる" : "Connect the report to the course or assignment",
-      issue: ja ? "授業概念や課題文との接続が弱いと、一般論に見えやすくなります。" : "Without course concepts or assignment constraints, the draft can feel too general.",
-      suggestion: ja ? "課題文のキーワード、授業で扱った概念、先生が強調した論点を具体的に入れます。" : "Add assignment keywords, course concepts, or issues emphasized by the instructor.",
+      issue: ja ? "授業概念や課題内容との接続が弱いと、一般論に見えやすくなります。" : "Without course concepts or assignment constraints, the draft can feel too general.",
+      suggestion: ja ? "課題内容のキーワード、授業で扱った概念、先生が強調した論点を具体的に入れます。" : "Add assignment keywords, course concepts, or issues emphasized by the instructor.",
       category: "course",
       priority: "high"
     },

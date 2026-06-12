@@ -580,6 +580,10 @@ h1 {
   grid-template-columns: minmax(260px, 360px) minmax(320px, 1fr);
 }
 
+.stepFocusGrid .contentPointsPane {
+  grid-column: 1 / -1;
+}
+
 .planStageGrid {
   grid-template-columns: minmax(0, 960px);
 }
@@ -650,7 +654,7 @@ h1 {
 
 .detailsGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
   gap: 12px;
 }
 
@@ -658,6 +662,7 @@ h1 {
 .materialCheckBox,
 .materialResult,
 .analysisPane,
+.questionsPane,
 .analysisSummary {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -864,6 +869,12 @@ h1 {
   color: var(--teal);
   padding: 5px 9px;
   font-weight: 700;
+}
+
+.compactScore {
+  border-bottom: 0;
+  margin-bottom: 12px;
+  padding-bottom: 0;
 }
 
 .fileList {

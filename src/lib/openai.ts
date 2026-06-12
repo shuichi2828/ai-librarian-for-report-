@@ -374,8 +374,10 @@ export async function generateMaterialQualityCheck(
 
   const prompt = [
     "You are an academic librarian checking whether a student's initial report material is concrete enough to generate strong report plans.",
-    "Give a material strength score from 0 to 100. Higher means the material is specific enough for focused plans and paper search.",
-    "Ask short follow-up questions only where the material is vague.",
+    "Give a material strength score from 0 to 100. Be strict: 90+ requires a clear assignment scope, usable report content, concrete course or PDF material, and a direction suitable for paper search. Do not give 100 unless almost no follow-up is needed.",
+    "Ask 3 to 5 high-quality additional questions only where the material is vague. Each question must help fill one missing piece: report scope, stance or comparison axis, evidence needed, course connection, PDF theme selection, or citation/search direction.",
+    "Make questions easy to answer in one sentence or a short choice. Avoid generic questions such as 'what do you think?' or questions that repeat the prompt.",
+    "If PDF themes are present, include them in the diagnosis and ask at least one question that helps decide which PDF theme should be used or how it connects to the assignment.",
     "Suggest selectable material additions that would make the plan more specific.",
     "Include report preference guidance. Preferences may include personal experience, paper citation focus, objective facts, course content, comparison, policy/practice, or critical discussion.",
     "Do not ask for private sensitive data.",
