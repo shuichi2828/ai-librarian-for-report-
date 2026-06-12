@@ -121,9 +121,13 @@ export async function POST(request: Request) {
       formattedCitation,
       inTextCitation,
       citationUse:
-        language === "ja"
-          ? `本文では ${inTextCitation} のように示し、この論文が支える主張や段落の直後で使います。`
-          : `Use ${inTextCitation} near the sentence or paragraph supported by this source.`,
+        citationStyle === "chicago"
+          ? language === "ja"
+            ? `Chicago Author-Dateでは ${inTextCitation} の [page] を、本文確認後に実際のページ番号へ置き換えて使います。ページ番号は推測で入れないでください。`
+            : `In Chicago Author-Date, replace [page] in ${inTextCitation} with the exact page after checking the full text. Do not guess page numbers.`
+          : language === "ja"
+            ? `本文では ${inTextCitation} のように示し、この論文が支える主張や段落の直後で使います。`
+            : `Use ${inTextCitation} near the sentence or paragraph supported by this source.`,
       sourceProvider: paper.provider,
       citationCount: paper.citationCount,
       relevanceScore: relevance.score,

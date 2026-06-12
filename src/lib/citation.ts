@@ -18,6 +18,18 @@ function formatAuthors(authors: string[]): string {
   return `${cleaned.slice(0, 19).join(", ")}, ... ${cleaned.at(-1)}`;
 }
 
+function invertAuthorName(author: string): string {
+  const cleaned = author.trim();
+  if (!cleaned || cleaned.includes(",")) return cleaned;
+
+  const parts = cleaned.split(/\s+/);
+  if (parts.length < 2) return cleaned;
+
+  const familyName = parts.at(-1);
+  const givenNames = parts.slice(0, -1).join(" ");
+  return `${familyName}, ${givenNames}`;
+}
+
 function formatChicagoAuthors(authors: string[]): string {
   const cleaned = authors.map((author) => author.trim()).filter(Boolean);
 
@@ -26,14 +38,14 @@ function formatChicagoAuthors(authors: string[]): string {
   }
 
   if (cleaned.length === 1) {
-    return cleaned[0];
+    return invertAuthorName(cleaned[0]);
   }
 
   if (cleaned.length === 2) {
-    return `${cleaned[0]} and ${cleaned[1]}`;
+    return `${invertAuthorName(cleaned[0])}, and ${cleaned[1]}`;
   }
 
-  return `${cleaned.slice(0, -1).join(", ")}, and ${cleaned.at(-1)}`;
+  return `${invertAuthorName(cleaned[0])}, ${cleaned.slice(1, -1).join(", ")}, and ${cleaned.at(-1)}`;
 }
 
 function firstAuthorName(authors: string[]): string {
@@ -41,12 +53,6 @@ function firstAuthorName(authors: string[]): string {
   if (!first) return "Unknown author";
   const parts = first.split(/\s+/);
   return parts.at(-1) ?? first;
-}
-
-function shortTitle(title: string): string {
-  const cleaned = title.replace(/[.:!?]+$/g, "").trim();
-  const words = cleaned.split(/\s+/).slice(0, 6).join(" ");
-  return words || cleaned;
 }
 
 export function formatApa7(paper: ProviderPaper): string {
@@ -60,11 +66,11 @@ export function formatApa7(paper: ProviderPaper): string {
 
 export function formatChicago(paper: ProviderPaper): string {
   const authors = formatChicagoAuthors(paper.authors);
-  const year = paper.year ? ` ${paper.year}.` : "";
+  const year = paper.year ?? "n.d.";
   const source = paper.sourceName ? ` ${paper.sourceName}.` : "";
   const locator = paper.doi ? ` https://doi.org/${paper.doi.replace(/^https?:\/\/doi\.org\//i, "")}` : paper.url ? ` ${paper.url}` : "";
 
-  return `${authors}. "${paper.title}."${source}${year}${locator}`.replace(/\s+/g, " ").trim();
+  return `${authors}. ${year}. "${paper.title}."${source}${locator}`.replace(/\s+/g, " ").trim();
 }
 
 export function formatCitation(paper: ProviderPaper, style: CitationStyle): string {
@@ -76,7 +82,7 @@ export function formatInTextCitation(paper: ProviderPaper, style: CitationStyle)
   const author = firstAuthorName(paper.authors);
 
   if (style === "chicago") {
-    return `${author}, "${shortTitle(paper.title)}"`;
+    return `(${author} ${year}, [page])`;
   }
 
   return `(${author}, ${year})`;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatApa7 } from "@/lib/citation";
+import { formatApa7, formatChicago, formatInTextCitation } from "@/lib/citation";
 import type { ProviderPaper } from "@/lib/types";
 
 describe("formatApa7", () => {
@@ -27,5 +27,33 @@ describe("formatApa7", () => {
     };
 
     expect(formatApa7(paper)).toBe("Unknown author (n.d.). Regional universities and demographic change. https://example.test/work");
+  });
+});
+
+describe("Chicago author-date citations", () => {
+  it("formats reference entries with year after the author", () => {
+    const paper: ProviderPaper = {
+      title: "Temporal Variation in Selection Influences Local Adaptation",
+      authors: ["Emily Dittmar", "Douglas Schemske"],
+      year: 2023,
+      sourceName: "American Naturalist 202 (4): 471-85",
+      doi: "10.1086/725865",
+      provider: "Crossref"
+    };
+
+    expect(formatChicago(paper)).toBe(
+      'Dittmar, Emily, and Douglas Schemske. 2023. "Temporal Variation in Selection Influences Local Adaptation." American Naturalist 202 (4): 471-85. https://doi.org/10.1086/725865'
+    );
+  });
+
+  it("includes a page placeholder in Chicago in-text citations", () => {
+    const paper: ProviderPaper = {
+      title: "Inclusion Work",
+      authors: ["Hyeyoung Kwon"],
+      year: 2022,
+      provider: "OpenAlex"
+    };
+
+    expect(formatInTextCitation(paper, "chicago")).toBe("(Kwon 2022, [page])");
   });
 });
