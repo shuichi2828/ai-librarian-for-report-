@@ -123,8 +123,8 @@ export async function POST(request: Request) {
       citationUse:
         citationStyle === "chicago"
           ? language === "ja"
-            ? `Chicago Author-Dateでは ${inTextCitation} の [page] を、本文確認後に実際のページ番号へ置き換えて使います。ページ番号は推測で入れないでください。`
-            : `In Chicago Author-Date, replace [page] in ${inTextCitation} with the exact page after checking the full text. Do not guess page numbers.`
+            ? "Chicago Author-Dateでは、本文確認後に実際のページ番号を入力してから引用してください。ページ番号は推測で入れないでください。"
+            : "For Chicago Author-Date, enter the exact page after checking the full text. Do not guess page numbers."
           : language === "ja"
             ? `本文では ${inTextCitation} のように示し、この論文が支える主張や段落の直後で使います。`
             : `Use ${inTextCitation} near the sentence or paragraph supported by this source.`,

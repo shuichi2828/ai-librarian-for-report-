@@ -188,6 +188,10 @@ const UI_TEXT = {
     citationOnly: "引用だけコピー",
     summaryOnly: "要約をコピー",
     inTextCitation: "本文中の引用例",
+    citationPage: "引用ページ",
+    citationPageHelp: "Chicagoでは、本文で使う箇所のページ番号を入れてください。",
+    citationPagePlaceholder: "例: 45 または 1842-43",
+    citationPageMissing: "ページ番号を入力すると、Chicago形式の本文中引用が表示されます。",
     citationFormat: "引用形式",
     citationFormatHelp: "参考文献の見た目とコピー内容を選べます。",
     citationUse: "どこで引用するか",
@@ -279,6 +283,10 @@ const UI_TEXT = {
     citationOnly: "Copy citation only",
     summaryOnly: "Copy summary",
     inTextCitation: "In-text citation",
+    citationPage: "Citation page",
+    citationPageHelp: "For Chicago, enter the exact page used in the text.",
+    citationPagePlaceholder: "e.g. 45 or 1842-43",
+    citationPageMissing: "Enter a page number to show the Chicago in-text citation.",
     citationFormat: "Citation style",
     citationFormatHelp: "Choose how references are displayed and copied.",
     citationUse: "Where to cite",
@@ -307,28 +315,58 @@ function citationText(reference: ReferenceItem) {
   return reference.formattedCitation ?? reference.apa7;
 }
 
-function copyText(reference: ReferenceItem, uiLanguage: "ja" | "en") {
+function cleanPageNumber(page: string) {
+  return page.trim().replace(/\s+/g, " ");
+}
+
+function inTextCitationText(reference: ReferenceItem, pageNumber = "") {
+  if (!reference.inTextCitation) return "";
+  if (reference.citationStyle !== "chicago") return reference.inTextCitation;
+
+  const page = cleanPageNumber(pageNumber);
+  if (!page) return "";
+
+  return reference.inTextCitation.replace("[page]", page);
+}
+
+function citationUseText(reference: ReferenceItem, uiLanguage: "ja" | "en", pageNumber = "") {
+  if (reference.citationStyle !== "chicago") return reference.citationUse ?? "";
+
+  const inTextCitation = inTextCitationText(reference, pageNumber);
+  if (!inTextCitation) {
+    return uiLanguage === "ja"
+      ? "Chicago Author-Dateでは、本文確認後に実際のページ番号を入力してから引用してください。ページ番号は推測で入れないでください。"
+      : "For Chicago Author-Date, enter the exact page after checking the full text. Do not guess page numbers.";
+  }
+
+  return uiLanguage === "ja"
+    ? `本文では ${inTextCitation} のように示し、この論文が支える主張や段落の直後で使います。`
+    : `Use ${inTextCitation} near the sentence or paragraph supported by this source.`;
+}
+
+function copyText(reference: ReferenceItem, uiLanguage: "ja" | "en", inTextCitation = "", citationUse = "") {
   const text = UI_TEXT[uiLanguage];
   const url = reference.doi ? `https://doi.org/${reference.doi}` : reference.url;
   return [
     `${text.citation}: ${citationText(reference)}`,
-    reference.inTextCitation ? `${text.inTextCitation}: ${reference.inTextCitation}` : "",
+    inTextCitation ? `${text.inTextCitation}: ${inTextCitation}` : "",
     `${text.summary}: ${reference.abstractOrMetadataSummary}`,
     `${text.usePoint}: ${reference.whyUseful}`,
-    reference.citationUse ? `${text.citationUse}: ${reference.citationUse}` : "",
+    citationUse ? `${text.citationUse}: ${citationUse}` : "",
     url ? `${text.link}: ${url}` : ""
   ]
     .filter(Boolean)
     .join("\n");
 }
 
-function copyReferenceSummary(reference: ReferenceItem, uiLanguage: "ja" | "en") {
+function copyReferenceSummary(reference: ReferenceItem, uiLanguage: "ja" | "en", inTextCitation = "", citationUse = "") {
   const text = UI_TEXT[uiLanguage];
   return [
     reference.title,
+    inTextCitation ? `${text.inTextCitation}: ${inTextCitation}` : "",
     `${text.summary}: ${reference.abstractOrMetadataSummary}`,
     `${text.usePoint}: ${reference.whyUseful}`,
-    reference.citationUse ? `${text.citationUse}: ${reference.citationUse}` : "",
+    citationUse ? `${text.citationUse}: ${citationUse}` : "",
     `${text.citation}: ${citationText(reference)}`
   ]
     .filter(Boolean)
@@ -449,6 +487,7 @@ export default function Home() {
   const [references, setReferences] = useState<ReferenceItem[]>([]);
   const [selectedReferenceIds, setSelectedReferenceIds] = useState<string[]>([]);
   const [citationStyle, setCitationStyle] = useState<CitationStyle>("apa7");
+  const [referencePages, setReferencePages] = useState<Record<string, string>>({});
   const [reportOutline, setReportOutline] = useState<ReportOutline | null>(null);
   const [draftOptions, setDraftOptions] = useState<ReportDraftOptions>({
     targetWordCount: 1200,
@@ -541,6 +580,7 @@ export default function Home() {
     setRefinementInstruction("");
     setPlanRevisionCount(0);
     setReferences([]);
+    setReferencePages({});
     setReportOutline(null);
     setReportDraft(null);
     setPersonalizationCheck(null);
@@ -580,6 +620,25 @@ export default function Home() {
 
   function hasSelectedDraftMaterial(selectedReferences: ReferenceItem[]) {
     return selectedReferences.length > 0 || selectedPdfThemes().length > 0 || selectedContentPoints().length > 0;
+  }
+
+  function selectedReferencesForRequest() {
+    return references
+      .filter((reference) => selectedReferenceIds.includes(reference.id))
+      .map((reference) => {
+        const inTextCitation = inTextCitationText(reference, referencePages[reference.id]);
+        if (reference.citationStyle !== "chicago") return reference;
+
+        return {
+          ...reference,
+          inTextCitation: inTextCitation || undefined,
+          citationUse: inTextCitation
+            ? selectedOutputLanguage === "ja"
+              ? `本文では ${inTextCitation} のように示し、この論文が支える主張や段落の直後で使います。`
+              : `Use ${inTextCitation} near the sentence or paragraph supported by this source.`
+            : reference.citationUse
+        };
+      });
   }
 
   function selectedPreferenceText() {
@@ -645,6 +704,7 @@ export default function Home() {
     setSelectedContentPointIds([]);
     setPlans([]);
     setReferences([]);
+    setReferencePages({});
     setSelectedReferenceIds([]);
     setReportOutline(null);
     setReportDraft(null);
@@ -751,6 +811,7 @@ export default function Home() {
     setPlans([]);
     setSelectedPlanId(undefined);
     setReferences([]);
+    setReferencePages({});
     setSelectedReferenceIds([]);
     setReportOutline(null);
     setReportDraft(null);
@@ -826,6 +887,7 @@ export default function Home() {
       const result = (await response.json()) as ReferenceSearchResult;
       setReferences(result.references);
       setSelectedReferenceIds(result.references.slice(0, 4).map((reference) => reference.id));
+      setReferencePages({});
       setReportDraft(null);
       clearRevisionFlow();
       setWarnings(result.warnings);
@@ -934,7 +996,7 @@ export default function Home() {
       return;
     }
 
-    const selectedReferences = references.filter((reference) => selectedReferenceIds.includes(reference.id));
+    const selectedReferences = selectedReferencesForRequest();
     if (!hasSelectedDraftMaterial(selectedReferences)) {
       setError("論文・PDFテーマ・内容候補のいずれかを1つ以上選んでください。");
       return;
@@ -984,7 +1046,7 @@ export default function Home() {
       return;
     }
 
-    const selectedReferences = references.filter((reference) => selectedReferenceIds.includes(reference.id));
+    const selectedReferences = selectedReferencesForRequest();
     if (!hasSelectedDraftMaterial(selectedReferences)) {
       setError("論文・PDFテーマ・内容候補のいずれかを1つ以上選んでください。");
       return;
@@ -1037,7 +1099,7 @@ export default function Home() {
       return;
     }
 
-    const selectedReferences = references.filter((reference) => selectedReferenceIds.includes(reference.id));
+    const selectedReferences = selectedReferencesForRequest();
     if (!hasSelectedDraftMaterial(selectedReferences)) {
       setError("論文・PDFテーマ・内容候補のいずれかを1つ以上選んでください。");
       return;
@@ -1084,7 +1146,7 @@ export default function Home() {
       return;
     }
 
-    const selectedReferences = references.filter((reference) => selectedReferenceIds.includes(reference.id));
+    const selectedReferences = selectedReferencesForRequest();
     const selectedImprovements = personalizationCheck.points.filter((point) => selectedImprovementIds.includes(point.id));
     const customImprovements = otherImprovement
       .split(/\n+/)
@@ -1158,6 +1220,7 @@ export default function Home() {
     setCombinePlanIds([]);
     setRefinementInstruction("");
     setReferences(entry.references);
+    setReferencePages({});
     setWarnings([]);
     setAlternatives([]);
     setRefinements([]);
@@ -1716,6 +1779,7 @@ export default function Home() {
               onChange={(event) => {
                 setCitationStyle(event.target.value as CitationStyle);
                 setReferences([]);
+                setReferencePages({});
                 setSelectedReferenceIds([]);
               }}
             >
@@ -1768,7 +1832,14 @@ export default function Home() {
                   copyToClipboard(
                     references
                       .filter((reference) => selectedReferenceIds.includes(reference.id))
-                      .map((reference) => copyReferenceSummary(reference, selectedOutputLanguage))
+                      .map((reference) =>
+                        copyReferenceSummary(
+                          reference,
+                          selectedOutputLanguage,
+                          inTextCitationText(reference, referencePages[reference.id]),
+                          citationUseText(reference, selectedOutputLanguage, referencePages[reference.id])
+                        )
+                      )
                       .join("\n\n---\n\n"),
                     text.copiedSelectedSummaries
                   )
@@ -1805,21 +1876,52 @@ export default function Home() {
                   <p>{renderMathText(reference.abstractOrMetadataSummary)}</p>
                   <h4>{text.usePoint}</h4>
                   <p className="whyUseful">{renderMathText(reference.whyUseful)}</p>
+                  {reference.citationStyle === "chicago" && reference.inTextCitation?.includes("[page]") && (
+                    <label className="citationPageField">
+                      <span>{text.citationPage}</span>
+                      <small>{text.citationPageHelp}</small>
+                      <input
+                        value={referencePages[reference.id] ?? ""}
+                        onChange={(event) => {
+                          setReferencePages((current) => ({ ...current, [reference.id]: event.target.value }));
+                          setReportDraft(null);
+                          clearRevisionFlow();
+                        }}
+                        placeholder={text.citationPagePlaceholder}
+                      />
+                    </label>
+                  )}
                   {reference.inTextCitation && (
                     <>
                       <h4>{text.inTextCitation}</h4>
-                      <p className="whyUseful">{reference.inTextCitation}</p>
+                      <p className="whyUseful">{inTextCitationText(reference, referencePages[reference.id]) || text.citationPageMissing}</p>
                     </>
                   )}
                   {reference.citationUse && (
                     <>
                       <h4>{text.citationUse}</h4>
-                      <p className="whyUseful">{reference.citationUse}</p>
+                      <p className="whyUseful">{citationUseText(reference, selectedOutputLanguage, referencePages[reference.id])}</p>
                     </>
                   )}
                   <div className="citationRow">
                     <code>{citationText(reference)}</code>
-                    <button className="iconButton" type="button" onClick={() => copyToClipboard(copyText(reference, selectedOutputLanguage), text.copiedCitationSet)} aria-label={text.citationOnly} title={text.citationOnly}>
+                    <button
+                      className="iconButton"
+                      type="button"
+                      onClick={() =>
+                        copyToClipboard(
+                          copyText(
+                            reference,
+                            selectedOutputLanguage,
+                            inTextCitationText(reference, referencePages[reference.id]),
+                            citationUseText(reference, selectedOutputLanguage, referencePages[reference.id])
+                          ),
+                          text.copiedCitationSet
+                        )
+                      }
+                      aria-label={text.citationOnly}
+                      title={text.citationOnly}
+                    >
                       <Clipboard size={16} />
                     </button>
                   </div>
@@ -1827,7 +1929,21 @@ export default function Home() {
                     <button className="secondaryButton compact" type="button" onClick={() => copyToClipboard(citationText(reference), text.copiedCitationOnly)}>
                       {text.citationOnly}
                     </button>
-                    <button className="secondaryButton compact" type="button" onClick={() => copyToClipboard(copyReferenceSummary(reference, selectedOutputLanguage), text.copiedSelectedSummaries)}>
+                    <button
+                      className="secondaryButton compact"
+                      type="button"
+                      onClick={() =>
+                        copyToClipboard(
+                          copyReferenceSummary(
+                            reference,
+                            selectedOutputLanguage,
+                            inTextCitationText(reference, referencePages[reference.id]),
+                            citationUseText(reference, selectedOutputLanguage, referencePages[reference.id])
+                          ),
+                          text.copiedSelectedSummaries
+                        )
+                      }
+                    >
                       {text.summaryOnly}
                     </button>
                   </div>
