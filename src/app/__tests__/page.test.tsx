@@ -25,8 +25,8 @@ describe("Home", () => {
     await user.type(screen.getByLabelText("Name or email address"), "student@example.com");
     await user.click(screen.getByRole("button", { name: "Start" }));
 
-    expect(screen.getByLabelText("Report topic")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create content points" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Enter your report theme.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Go to the next screen" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "English" })).toBeInTheDocument();
   });
 
@@ -109,6 +109,7 @@ describe("Home", () => {
     await user.click(screen.getByRole("button", { name: "English" }));
     await user.type(screen.getByLabelText("Name or email address"), "student@example.com");
     await user.click(screen.getByRole("button", { name: "Start" }));
+    await user.click(screen.getByRole("button", { name: "Narrow" }));
     await user.click(screen.getByRole("button", { name: "Create content points" }));
 
     expect(await screen.findByText("Evidence point")).toBeInTheDocument();

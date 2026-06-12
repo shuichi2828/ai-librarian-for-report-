@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  ArrowLeft,
+  ArrowRight,
   BookOpen,
   CheckCircle2,
   Clipboard,
@@ -98,6 +100,8 @@ type GuestUser = {
   id: string;
   name: string;
 };
+
+type ActiveStep = 0 | 1 | 2 | 3 | 4 | 5;
 
 const HISTORY_KEY = "ai-librarian-history-v3";
 const USER_KEY = "ai-librarian-user-v1";
@@ -531,28 +535,37 @@ export default function Home() {
   const [status, setStatus] = useState<"idle" | "material" | "points" | "pdf" | "plans" | "references" | "outline" | "draft" | "personalization" | "revision">("idle");
   const [error, setError] = useState<string>();
   const [copyNotice, setCopyNotice] = useState("");
+  const [activeStep, setActiveStep] = useState<ActiveStep>(0);
 
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedPlanId), [plans, selectedPlanId]);
   const busy = status !== "idle";
   const userHistoryKey = user ? `${HISTORY_KEY}-${user.id}` : HISTORY_KEY;
   const selectedOutputLanguage: "ja" | "en" = outputLanguage === "en" ? "en" : "ja";
   const text = UI_TEXT[selectedOutputLanguage];
-  const stepItems =
+  const guideSteps =
     selectedOutputLanguage === "ja"
       ? [
-          { label: "1. 材料", done: details.assignmentPrompt.trim().length > 0 || details.userOpinion.trim().length > 0 || selectedPdfThemes().length > 0 },
-          { label: "2. 内容候補", done: selectedContentPointIds.length > 0 },
-          { label: "3. プラン", done: Boolean(selectedPlan) },
-          { label: "4. 参考文献", done: selectedReferenceIds.length > 0 },
-          { label: "5. 下書き", done: Boolean(reportOutline || reportDraft) }
+          { id: 0 as const, eyebrow: "テーマ", title: "レポートのテーマを決める", short: "テーマ", done: topic.trim().length > 0 },
+          { id: 1 as const, eyebrow: "Step 1", title: "レポート材料の収集", short: "材料収集", done: details.assignmentPrompt.trim().length > 0 || details.userOpinion.trim().length > 0 || selectedPdfThemes().length > 0 },
+          { id: 2 as const, eyebrow: "Step 2", title: "内容の絞り込み", short: "内容整理", done: selectedContentPointIds.length > 0 },
+          { id: 3 as const, eyebrow: "Step 3", title: "プランを作成", short: "プラン", done: Boolean(selectedPlan) },
+          { id: 4 as const, eyebrow: "Step 4", title: "参考文献を探す", short: "参考文献", done: selectedReferenceIds.length > 0 },
+          { id: 5 as const, eyebrow: "Step 5", title: "下書きを作成", short: "下書き", done: Boolean(reportOutline || reportDraft) }
         ]
       : [
-          { label: "1. Material", done: details.assignmentPrompt.trim().length > 0 || details.userOpinion.trim().length > 0 || selectedPdfThemes().length > 0 },
-          { label: "2. Points", done: selectedContentPointIds.length > 0 },
-          { label: "3. Plan", done: Boolean(selectedPlan) },
-          { label: "4. References", done: selectedReferenceIds.length > 0 },
-          { label: "5. Draft", done: Boolean(reportOutline || reportDraft) }
+          { id: 0 as const, eyebrow: "Theme", title: "Choose a report theme", short: "Theme", done: topic.trim().length > 0 },
+          { id: 1 as const, eyebrow: "Step 1", title: "Collect report material", short: "Material", done: details.assignmentPrompt.trim().length > 0 || details.userOpinion.trim().length > 0 || selectedPdfThemes().length > 0 },
+          { id: 2 as const, eyebrow: "Step 2", title: "Narrow the content", short: "Narrow", done: selectedContentPointIds.length > 0 },
+          { id: 3 as const, eyebrow: "Step 3", title: "Create a plan", short: "Plan", done: Boolean(selectedPlan) },
+          { id: 4 as const, eyebrow: "Step 4", title: "Find references", short: "References", done: selectedReferenceIds.length > 0 },
+          { id: 5 as const, eyebrow: "Step 5", title: "Create a draft", short: "Draft", done: Boolean(reportOutline || reportDraft) }
         ];
+  const activeGuide = guideSteps.find((step) => step.id === activeStep) ?? guideSteps[0];
+  const materialMetrics = [
+    { label: text.assignmentPrompt, value: details.assignmentPrompt.trim().length > 0 ? 100 : 0 },
+    { label: text.mustInclude, value: details.mustInclude.trim().length > 0 || selectedPdfThemes().length > 0 ? 100 : 0 },
+    { label: text.reportPreferences, value: details.userOpinion.trim().length > 0 || details.reportPreferences.length > 0 ? 100 : 0 }
+  ];
 
   useEffect(() => {
     const savedUser = window.localStorage.getItem(USER_KEY);
@@ -943,6 +956,41 @@ export default function Home() {
     }
   }
 
+  async function checkMaterialAndContinue() {
+    if (!topic.trim()) {
+      await checkMaterialQuality();
+      return;
+    }
+
+    await checkMaterialQuality();
+    setActiveStep(2);
+  }
+
+  async function suggestContentAndContinue() {
+    if (!topic.trim()) {
+      await suggestContentPoints();
+      return;
+    }
+
+    await suggestContentPoints();
+    setActiveStep(2);
+  }
+
+  async function createPlansAndContinue() {
+    if (selectedContentPoints().length === 0) {
+      await getPlans("initial");
+      return;
+    }
+
+    await getPlans("initial");
+    setActiveStep(3);
+  }
+
+  async function findReferencesAndContinue(plan: ThemeCandidate) {
+    await getReferences(plan);
+    setActiveStep(4);
+  }
+
   async function readPdf(avoidThemes: string[] = []) {
     if (pdfFiles.length === 0) {
       setError("先にPDFを選んでください。PDFは3つまで読み込めます。");
@@ -1249,6 +1297,7 @@ export default function Home() {
     setReportDraft(null);
     clearRevisionFlow();
     setError(undefined);
+    setActiveStep(4);
   }
 
   function togglePdfTheme(themeId: string) {
@@ -1413,13 +1462,24 @@ export default function Home() {
     <main className="shell">
       <aside className="historyPane" aria-label={text.history}>
         <div className="paneHeader">
-          <div className="brandMark">
-            <Library size={20} />
+          <div className="appGlyph miniGlyph" aria-hidden="true">
+            <span />
+            <span />
+            <span />
           </div>
           <div>
             <p className="eyebrow">AI Librarian</p>
-            <h1>{text.appTitle}</h1>
+            <h1>AI Report Builder</h1>
           </div>
+        </div>
+
+        <div className="languageControl sidebarLanguage" aria-label={selectedOutputLanguage === "ja" ? "出力言語" : "Output language"}>
+          <Languages size={18} />
+          {(["ja", "en"] as const).map((language) => (
+            <button className={selectedOutputLanguage === language ? "segmented active" : "segmented"} key={language} onClick={() => setOutputLanguage(language)} type="button">
+              {languageLabel(language, selectedOutputLanguage)}
+            </button>
+          ))}
         </div>
 
         <div className="userBox">
@@ -1465,38 +1525,65 @@ export default function Home() {
       </aside>
 
       <section className="workspace">
-        <div className="searchBand">
-          <div className="topicField">
-            <label htmlFor="topic">{selectedOutputLanguage === "ja" ? "レポートのテーマ" : "Report topic"}</label>
-            <input
-              id="topic"
-              value={topic}
-              onChange={(event) => setTopic(event.target.value)}
-              placeholder={selectedOutputLanguage === "ja" ? "例: 生成AIと大学教育" : "Example: Generative AI and university education"}
-            />
+        <div className="workspaceTop">
+          <div>
+            <p className="eyebrow">{activeGuide.eyebrow}</p>
+            <h2>{activeGuide.title}</h2>
           </div>
-          <div className="languageControl" aria-label={selectedOutputLanguage === "ja" ? "出力言語" : "Output language"}>
-            <Languages size={18} />
-            {(["ja", "en"] as const).map((language) => (
-              <button className={selectedOutputLanguage === language ? "segmented active" : "segmented"} key={language} onClick={() => setOutputLanguage(language)} type="button">
-                {languageLabel(language, selectedOutputLanguage)}
-              </button>
-            ))}
-          </div>
+          {activeStep > 0 && (
+            <button className="secondaryButton compact" type="button" onClick={() => setActiveStep((Math.max(0, activeStep - 1) as ActiveStep))}>
+              <ArrowLeft size={17} />
+              {selectedOutputLanguage === "ja" ? "前のStep" : "Previous"}
+            </button>
+          )}
         </div>
 
-        <nav className="stepRail" aria-label={text.stepAria}>
-          {stepItems.map((step) => (
-            <span className={step.done ? "stepPill done" : "stepPill"} key={step.label}>
+        <nav className="stepRail stepRailButtons" aria-label={text.stepAria}>
+          {guideSteps.map((step) => (
+            <button className={step.id === activeStep ? "stepPill active" : step.done ? "stepPill done" : "stepPill"} key={step.id} type="button" onClick={() => setActiveStep(step.id)}>
               {step.done && <CheckCircle2 size={15} />}
-              {step.label}
-            </span>
+              {step.short}
+            </button>
           ))}
         </nav>
 
         {error && <div className="notice error">{error}</div>}
 
-        <section className="detailsPane" aria-label="Assignment details">
+        {activeStep === 0 && (
+          <section className="topicHero" aria-label={selectedOutputLanguage === "ja" ? "レポートテーマ入力" : "Report theme input"}>
+            <label className="topicHeroField" htmlFor="topic">
+              <span>{selectedOutputLanguage === "ja" ? "レポートのテーマを入力してください。" : "Enter your report theme."}</span>
+              <div>
+                <input
+                  id="topic"
+                  value={topic}
+                  onChange={(event) => setTopic(event.target.value)}
+                  placeholder={selectedOutputLanguage === "ja" ? "例: 生成AIと大学教育" : "Example: Generative AI and university education"}
+                />
+                <button className="arrowButton" type="button" onClick={() => topic.trim() && setActiveStep(1)} aria-label={selectedOutputLanguage === "ja" ? "次の画面へ進む" : "Go to the next screen"}>
+                  <ArrowRight size={22} />
+                </button>
+              </div>
+            </label>
+            <p className="topicHeroText">
+              {selectedOutputLanguage === "ja"
+                ? "テーマを入力後、以下の手順でレポート作成を進めます。AIは下書きまでのお手伝いです。"
+                : "After entering a theme, follow these steps to build your report. AI helps you reach a draft."}
+            </p>
+            <div className="processList">
+              {guideSteps.slice(1).map((step) => (
+                <button className="processItem" key={step.id} type="button" onClick={() => setActiveStep(step.id)}>
+                  <span>{step.eyebrow}</span>
+                  <strong>{step.title}</strong>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {activeStep === 1 && (
+          <>
+        <section className="detailsPane stepPage" aria-label="Assignment details">
           <div className="sectionHeader">
             <MessageSquareText size={18} />
             <h2>{text.materialSection}</h2>
@@ -1549,7 +1636,7 @@ export default function Home() {
               <strong>{text.materialCheck}</strong>
               <p>{text.materialCheckHelp}</p>
             </div>
-            <button className="secondaryButton compact" type="button" onClick={checkMaterialQuality} disabled={busy}>
+            <button className="primaryButton compact" type="button" onClick={checkMaterialAndContinue} disabled={busy}>
               {status === "material" ? <Loader2 size={17} className="spin" /> : <CheckCircle2 size={17} />}
               {text.runCheck}
             </button>
@@ -1610,16 +1697,6 @@ export default function Home() {
               </div>
             </div>
           )}
-          <div className="materialCheckBox">
-            <div>
-              <strong>{text.createContent}</strong>
-              <p>{text.createContentHelp}</p>
-            </div>
-            <button className="primaryButton" type="button" onClick={() => suggestContentPoints()} disabled={busy || !topic.trim()}>
-              {status === "points" ? <Loader2 size={18} className="spin" /> : <MessageSquareText size={18} />}
-              {text.createContent}
-            </button>
-          </div>
         </section>
 
         <section className="pdfPane" aria-label={text.pdfSection}>
@@ -1686,8 +1763,65 @@ export default function Home() {
             </div>
           )}
         </section>
+          </>
+        )}
 
-        <div className="workflowGrid">
+        {(activeStep === 2 || activeStep === 3) && (
+        <div className={activeStep === 2 ? "workflowGrid stepFocusGrid" : "workflowGrid planStageGrid"}>
+          {activeStep === 2 && (
+          <section className="analysisPane" aria-label={selectedOutputLanguage === "ja" ? "材料の分析結果" : "Material analysis"}>
+            <div className="sectionHeader">
+              <ListChecks size={18} />
+              <h2>{selectedOutputLanguage === "ja" ? "分析結果" : "Analysis result"}</h2>
+            </div>
+            <div className="scoreBars">
+              {materialMetrics.map((metric) => (
+                <div className="scoreBar" key={metric.label}>
+                  <div>
+                    <span>{metric.label}</span>
+                    <b>{metric.value}%</b>
+                  </div>
+                  <meter min={0} max={100} value={metric.value} />
+                </div>
+              ))}
+            </div>
+            {materialCheck ? (
+              <div className="analysisSummary">
+                <strong>{materialCheck.verdict}</strong>
+                {materialCheck.weaknesses.map((weakness) => (
+                  <p key={weakness}>{weakness}</p>
+                ))}
+              </div>
+            ) : (
+              <div className="placeholderBlock">{selectedOutputLanguage === "ja" ? "Step 1でチェックすると、材料の分析結果がここに表示されます。" : "Check Step 1 to show the material analysis here."}</div>
+            )}
+            {materialCheck && (
+              <div className="materialQuestionList">
+                <h3>{text.quickQuestions}</h3>
+                {materialCheck.questions.map((question) => (
+                  <label className="materialQuestion" key={question.id}>
+                    <span>{question.label}</span>
+                    <small>{question.helpText}</small>
+                    {question.type === "choice" ? (
+                      <select value={materialQuestionAnswers[question.id] ?? ""} onChange={(event) => updateMaterialAnswer(question.id, event.target.value)}>
+                        <option value="">{text.chooseOption}</option>
+                        {question.options.map((option) => (
+                          <option value={option} key={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <textarea value={materialQuestionAnswers[question.id] ?? ""} onChange={(event) => updateMaterialAnswer(question.id, event.target.value)} rows={2} />
+                    )}
+                  </label>
+                ))}
+              </div>
+            )}
+          </section>
+          )}
+
+          {activeStep === 2 && (
           <section aria-label={text.contentPointsSection}>
             <div className="sectionHeader">
               <MessageSquareText size={18} />
@@ -1715,14 +1849,20 @@ export default function Home() {
                 {text.add}
               </button>
             </div>
+            <button className="primaryButton" type="button" onClick={suggestContentAndContinue} disabled={busy || !topic.trim()}>
+              {status === "points" ? <Loader2 size={18} className="spin" /> : <MessageSquareText size={18} />}
+              {text.createContent}
+            </button>
             {contentPoints.length > 0 && (
-              <button className="secondaryButton" type="button" onClick={() => getPlans("initial")} disabled={busy}>
+              <button className="secondaryButton" type="button" onClick={createPlansAndContinue} disabled={busy}>
                 {status === "plans" ? <Loader2 size={18} className="spin" /> : <BookOpen size={18} />}
                 {text.createPlan}
               </button>
             )}
           </section>
+          )}
 
+          {activeStep === 3 && (
           <section aria-label={text.planSection}>
             <div className="sectionHeader">
               <BookOpen size={18} />
@@ -1784,7 +1924,7 @@ export default function Home() {
                       ))}
                     </div>
                     <p className="whyUseful">{renderMathText(plan.thesisHint)}</p>
-                    <button className="secondaryButton compact" type="button" onClick={() => getReferences(plan)} disabled={status === "references"}>
+                    <button className="secondaryButton compact" type="button" onClick={() => findReferencesAndContinue(plan)} disabled={status === "references"}>
                       {status === "references" && selectedPlanId === plan.id ? <Loader2 size={17} className="spin" /> : <Search size={17} />}
                       {selectedOutputLanguage === "ja" ? "参考文献を探す" : "Find references"}
                     </button>
@@ -1793,9 +1933,12 @@ export default function Home() {
               )}
             </div>
           </section>
+          )}
         </div>
+        )}
 
-        <section className="referencesPane" aria-label="参考文献">
+        {activeStep === 4 && (
+        <section className="referencesPane stepPage" aria-label="参考文献">
           <div className="sectionHeader">
             <Library size={18} />
             <h2>{selectedOutputLanguage === "ja" ? "4. 参考文献を選ぶ" : "4. Choose References"}</h2>
@@ -1986,10 +2129,22 @@ export default function Home() {
               ))
             )}
           </div>
+          <div className="stepActions">
+            <button
+              className="primaryButton"
+              type="button"
+              onClick={() => setActiveStep(5)}
+              disabled={selectedReferenceIds.length === 0 && selectedPdfThemes().length === 0 && selectedContentPoints().length === 0}
+            >
+              <ArrowRight size={18} />
+              {selectedOutputLanguage === "ja" ? "下書きを作成へ" : "Go to draft"}
+            </button>
+          </div>
         </section>
+        )}
 
-        {selectedPlan && (references.length > 0 || selectedPdfThemes().length > 0 || selectedContentPoints().length > 0) && (
-          <section className="outlinePane" aria-label="構成案">
+        {activeStep === 5 && selectedPlan && (references.length > 0 || selectedPdfThemes().length > 0 || selectedContentPoints().length > 0) && (
+          <section className="outlinePane stepPage" aria-label="構成案">
             <div className="sectionHeader">
               <ListChecks size={18} />
               <h2>5. 構成案・下書きを作る</h2>
