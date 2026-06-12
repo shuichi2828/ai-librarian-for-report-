@@ -116,6 +116,65 @@ const UI_TEXT = {
     languageJa: "日本語",
     languageEn: "英語",
     languageAuto: "自動",
+    appTitle: "レポート作成AI",
+    history: "履歴",
+    clearHistory: "履歴を削除",
+    emptyHistory: "保存したレポートプランがここに表示されます。",
+    logout: "ログアウト",
+    stepAria: "作成ステップ",
+    materialSection: "1. 材料を入れる",
+    assignmentPrompt: "課題文",
+    assignmentPromptHelp: "先生の指示やレポート課題をそのまま貼り付けます。",
+    assignmentPromptPlaceholder: "課題文を貼り付け",
+    userOpinion: "自分の意見・仮の主張",
+    userOpinionHelp: "まだ曖昧でも大丈夫です。考えたい方向を書きます。",
+    userOpinionPlaceholder: "例: 大学はAIを禁止するより、責任ある使い方を教えるべき",
+    mustInclude: "必ず入れたい内容",
+    mustIncludeHelp: "授業キーワード、事例、使いたい概念などを書きます。",
+    mustIncludePlaceholder: "AIリテラシー、剽窃、大学のガイドライン",
+    reportPreferences: "レポートの好み",
+    addPreferencePlaceholder: "自分の好みを追加（例: 地元の事例を入れたい）",
+    add: "追加",
+    materialCheck: "材料チェック",
+    materialCheckHelp: "プランを作る前に、テーマ・意見・材料が十分に具体的か確認します。",
+    runCheck: "チェックする",
+    materialWeaknesses: "もう少し具体化したい点",
+    recommendedDirection: "おすすめの方向性",
+    quickQuestions: "すぐ答えられる質問",
+    chooseOption: "選択してください",
+    additionalMaterial: "追加できる材料",
+    addSelectedMaterial: "選んだ材料を追加",
+    pdfSection: "PDFを読み込む（任意・3件まで）",
+    pdfLimitError: "PDFは3件まで選択できます。",
+    pdfOcr: "スキャンPDFはOCRで読む",
+    readPdf: "PDFを読む",
+    reExtractPdf: "別の観点で再抽出",
+    readMode: "読み取り",
+    mixedMode: "複数方式",
+    pdfTextMode: "PDF内テキスト",
+    contentPointsSection: "2. 内容候補を選ぶ",
+    contentPointsPlaceholder: "テーマと材料を入れて「内容候補を作る」を押すと、レポートに入れる候補が表示されます。",
+    addContentPointPlaceholder: "自分で内容候補を追加",
+    createPlan: "プランを作る",
+    planSection: "3. プランを選ぶ・編集する",
+    editCount: "編集",
+    editCountSuffix: "回",
+    refinePlanLabel: "プランをもっと自分向けに変える",
+    refinePlanPlaceholder: "例: プラン1は良いが、もっと授業内容に寄せたい。プラン2の比較視点も混ぜたい。",
+    quickCritical: "批判的にする",
+    quickCriticalInstruction: "各プランに反対意見や限界を入れて、批判的考察がしやすい形にしてください。",
+    quickCourse: "授業寄りにする",
+    quickCourseInstruction: "課題文や授業内容との接続がはっきり見えるプランにしてください。",
+    quickCompare: "比較型にする",
+    quickCompareInstruction: "比較軸を明確にして、賛否や事例を比べやすいプランにしてください。",
+    quickSimple: "簡単にする",
+    quickSimpleInstruction: "大学生が書きやすいように、範囲を狭めてシンプルなプランにしてください。",
+    remakePlan: "編集内容で作り直す",
+    mixSelectedPlans: "選んだプランを混ぜる",
+    plansToMix: "混ぜるプラン",
+    planPlaceholder: "内容候補を選ぶと、ここにレポートプランが表示されます。",
+    mix: "混ぜる",
+    itemCount: "件",
     citation: "引用",
     summary: "要約",
     usePoint: "使いどころ",
@@ -148,6 +207,65 @@ const UI_TEXT = {
     languageJa: "Japanese",
     languageEn: "English",
     languageAuto: "Auto",
+    appTitle: "Report Writing AI",
+    history: "History",
+    clearHistory: "Clear history",
+    emptyHistory: "Saved report plans will appear here.",
+    logout: "Log out",
+    stepAria: "Creation steps",
+    materialSection: "1. Add Material",
+    assignmentPrompt: "Assignment prompt",
+    assignmentPromptHelp: "Paste the teacher's instructions or the report assignment as-is.",
+    assignmentPromptPlaceholder: "Paste the assignment prompt",
+    userOpinion: "My opinion / draft thesis",
+    userOpinionHelp: "It can still be rough. Write the direction you want to explore.",
+    userOpinionPlaceholder: "Example: Universities should teach responsible AI use instead of banning AI.",
+    mustInclude: "Required content",
+    mustIncludeHelp: "Add course keywords, examples, concepts, or points you must use.",
+    mustIncludePlaceholder: "AI literacy, plagiarism, university guidelines",
+    reportPreferences: "Report preferences",
+    addPreferencePlaceholder: "Add your own preference, e.g. include a local case",
+    add: "Add",
+    materialCheck: "Material Check",
+    materialCheckHelp: "Before creating a plan, check whether the topic, opinion, and material are concrete enough.",
+    runCheck: "Check",
+    materialWeaknesses: "Points to make more specific",
+    recommendedDirection: "Recommended direction",
+    quickQuestions: "Quick questions",
+    chooseOption: "Choose an option",
+    additionalMaterial: "Material you can add",
+    addSelectedMaterial: "Add selected material",
+    pdfSection: "Read PDFs (optional, up to 3)",
+    pdfLimitError: "You can select up to 3 PDFs.",
+    pdfOcr: "Use OCR for scanned PDFs",
+    readPdf: "Read PDF",
+    reExtractPdf: "Re-extract from another angle",
+    readMode: "Read mode",
+    mixedMode: "Mixed methods",
+    pdfTextMode: "Embedded PDF text",
+    contentPointsSection: "2. Choose Content Points",
+    contentPointsPlaceholder: "Add a topic and material, then create content points to see candidates for the report.",
+    addContentPointPlaceholder: "Add your own content point",
+    createPlan: "Create plan",
+    planSection: "3. Choose and Edit a Plan",
+    editCount: "Edited",
+    editCountSuffix: " times",
+    refinePlanLabel: "Make the plan fit my report better",
+    refinePlanPlaceholder: "Example: Plan 1 is good, but connect it more to class content. Also mix in the comparison angle from Plan 2.",
+    quickCritical: "Make it critical",
+    quickCriticalInstruction: "Add counterarguments and limitations to each plan so it is easier to write critical analysis.",
+    quickCourse: "Connect to class",
+    quickCourseInstruction: "Make the connection to the assignment prompt and course content clearer.",
+    quickCompare: "Make it comparative",
+    quickCompareInstruction: "Clarify comparison axes so the student can compare positions and cases.",
+    quickSimple: "Simplify",
+    quickSimpleInstruction: "Narrow the scope and make the plan simpler for an undergraduate report.",
+    remakePlan: "Remake with edits",
+    mixSelectedPlans: "Mix selected plans",
+    plansToMix: "Plans to mix",
+    planPlaceholder: "Choose content points to see report plans here.",
+    mix: "Mix",
+    itemCount: " items",
     citation: "Citation",
     summary: "Summary",
     usePoint: "Where to use it",
@@ -1110,7 +1228,7 @@ export default function Home() {
 
     const answerPoints = answerLines.map<ContentPoint>((line, index) => ({
       id: `material-answer-${Date.now()}-${index}`,
-      title: `追加した材料 ${index + 1}`,
+      title: selectedOutputLanguage === "ja" ? `追加した材料 ${index + 1}` : `Added material ${index + 1}`,
       description: line,
       type: "custom",
       keywordsJa: [topic, line],
@@ -1161,7 +1279,7 @@ export default function Home() {
     const point: ContentPoint = {
       id: `custom-${Date.now()}`,
       title,
-      description: "自分で追加した、レポートに入れたい内容です。",
+      description: selectedOutputLanguage === "ja" ? "自分で追加した、レポートに入れたい内容です。" : "A content point I added and want to include in the report.",
       type: "custom",
       keywordsJa: [topic, title],
       keywordsEn: [topic, title],
@@ -1198,30 +1316,30 @@ export default function Home() {
 
   return (
     <main className="shell">
-      <aside className="historyPane" aria-label="履歴">
+      <aside className="historyPane" aria-label={text.history}>
         <div className="paneHeader">
           <div className="brandMark">
             <Library size={20} />
           </div>
           <div>
             <p className="eyebrow">AI Librarian</p>
-            <h1>レポート作成AI</h1>
+            <h1>{text.appTitle}</h1>
           </div>
         </div>
 
         <div className="userBox">
           <UserRound size={17} />
           <span>{user.name}</span>
-          <button className="iconButton subtle" type="button" onClick={logout} aria-label="ログアウト" title="ログアウト">
+          <button className="iconButton subtle" type="button" onClick={logout} aria-label={text.logout} title={text.logout}>
             <LogOut size={16} />
           </button>
         </div>
 
         <div className="historyTitle">
           <History size={17} />
-          <span>履歴</span>
+          <span>{text.history}</span>
           {history.length > 0 && (
-            <button className="iconButton subtle" type="button" onClick={() => persistHistory([])} aria-label="履歴を削除" title="履歴を削除">
+            <button className="iconButton subtle" type="button" onClick={() => persistHistory([])} aria-label={text.clearHistory} title={text.clearHistory}>
               <Trash2 size={16} />
             </button>
           )}
@@ -1229,7 +1347,7 @@ export default function Home() {
 
         <div className="historyList">
           {history.length === 0 ? (
-            <p className="emptyText">保存したレポートプランがここに表示されます。</p>
+            <p className="emptyText">{text.emptyHistory}</p>
           ) : (
             history.map((entry) => (
               <button className="historyItem" type="button" key={entry.id} onClick={() => loadHistory(entry)}>
@@ -1239,7 +1357,7 @@ export default function Home() {
                 </small>
                 <X
                   size={15}
-                  aria-label="履歴を削除"
+                  aria-label={text.clearHistory}
                   onClick={(event) => {
                     event.stopPropagation();
                     persistHistory(history.filter((item) => item.id !== entry.id));
@@ -1272,7 +1390,7 @@ export default function Home() {
           </div>
         </div>
 
-        <nav className="stepRail" aria-label="作成ステップ">
+        <nav className="stepRail" aria-label={text.stepAria}>
           {stepItems.map((step) => (
             <span className={step.done ? "stepPill done" : "stepPill"} key={step.label}>
               {step.done && <CheckCircle2 size={15} />}
@@ -1286,32 +1404,32 @@ export default function Home() {
         <section className="detailsPane" aria-label="Assignment details">
           <div className="sectionHeader">
             <MessageSquareText size={18} />
-            <h2>1. 材料を入れる</h2>
+            <h2>{text.materialSection}</h2>
           </div>
           <div className="detailsGrid">
             <label className="questionCard">
-              <span>課題文</span>
-              <small>先生の指示やレポート課題をそのまま貼り付けます。</small>
-              <textarea value={details.assignmentPrompt} onChange={(event) => setDetails({ ...details, assignmentPrompt: event.target.value })} placeholder="課題文を貼り付け" rows={4} />
+              <span>{text.assignmentPrompt}</span>
+              <small>{text.assignmentPromptHelp}</small>
+              <textarea value={details.assignmentPrompt} onChange={(event) => setDetails({ ...details, assignmentPrompt: event.target.value })} placeholder={text.assignmentPromptPlaceholder} rows={4} />
             </label>
             <label className="questionCard">
-              <span>自分の意見・仮の主張</span>
-              <small>まだ曖昧でも大丈夫です。考えたい方向を書きます。</small>
+              <span>{text.userOpinion}</span>
+              <small>{text.userOpinionHelp}</small>
               <textarea
                 value={details.userOpinion}
                 onChange={(event) => setDetails({ ...details, userOpinion: event.target.value })}
-                placeholder="例: 大学はAIを禁止するより、責任ある使い方を教えるべき"
+                placeholder={text.userOpinionPlaceholder}
                 rows={4}
               />
             </label>
             <label className="questionCard">
-              <span>必ず入れたい内容</span>
-              <small>授業キーワード、事例、使いたい概念などを書きます。</small>
-              <textarea value={details.mustInclude} onChange={(event) => setDetails({ ...details, mustInclude: event.target.value })} placeholder="AIリテラシー、剽窃、大学のガイドライン" rows={4} />
+              <span>{text.mustInclude}</span>
+              <small>{text.mustIncludeHelp}</small>
+              <textarea value={details.mustInclude} onChange={(event) => setDetails({ ...details, mustInclude: event.target.value })} placeholder={text.mustIncludePlaceholder} rows={4} />
             </label>
           </div>
           <div className="preferenceBox">
-            <span>{selectedOutputLanguage === "ja" ? "レポートの好み" : "Report preferences"}</span>
+            <span>{text.reportPreferences}</span>
             <div className="preferenceGrid">
               {REPORT_PREFERENCES.map((preference) => (
                 <label className={details.reportPreferences.includes(preference.id) ? "preferenceChip selected" : "preferenceChip"} key={preference.id}>
@@ -1324,21 +1442,21 @@ export default function Home() {
               <input
                 value={customPreference}
                 onChange={(event) => setCustomPreference(event.target.value)}
-                placeholder={selectedOutputLanguage === "ja" ? "自分の好みを追加（例: 地元の事例を入れたい）" : "Add your own preference, e.g. include a local case"}
+                placeholder={text.addPreferencePlaceholder}
               />
               <button className="secondaryButton compact" type="button" onClick={addCustomPreference}>
-                {selectedOutputLanguage === "ja" ? "追加" : "Add"}
+                {text.add}
               </button>
             </div>
           </div>
           <div className="materialCheckBox">
             <div>
-              <strong>材料チェック</strong>
-              <p>プランを作る前に、テーマ・意見・材料が十分に具体的か確認します。</p>
+              <strong>{text.materialCheck}</strong>
+              <p>{text.materialCheckHelp}</p>
             </div>
             <button className="secondaryButton compact" type="button" onClick={checkMaterialQuality} disabled={busy}>
               {status === "material" ? <Loader2 size={17} className="spin" /> : <CheckCircle2 size={17} />}
-              チェックする
+              {text.runCheck}
             </button>
           </div>
           {materialCheck && (
@@ -1349,14 +1467,14 @@ export default function Home() {
               </div>
               <div className="materialColumns">
                 <section>
-                  <h3>もう少し具体化したい点</h3>
+                  <h3>{text.materialWeaknesses}</h3>
                   {materialCheck.weaknesses.map((weakness) => (
                     <p key={weakness}>{weakness}</p>
                   ))}
-                  {materialCheck.recommendedPreferences.length > 0 && <small>おすすめの方向性: {materialCheck.recommendedPreferences.join(", ")}</small>}
+                  {materialCheck.recommendedPreferences.length > 0 && <small>{text.recommendedDirection}: {materialCheck.recommendedPreferences.join(", ")}</small>}
                 </section>
                 <section>
-                  <h3>すぐ答えられる質問</h3>
+                  <h3>{text.quickQuestions}</h3>
                   <div className="materialQuestionList">
                     {materialCheck.questions.map((question) => (
                       <label className="materialQuestion" key={question.id}>
@@ -1364,7 +1482,7 @@ export default function Home() {
                         <small>{question.helpText}</small>
                         {question.type === "choice" ? (
                           <select value={materialQuestionAnswers[question.id] ?? ""} onChange={(event) => updateMaterialAnswer(question.id, event.target.value)}>
-                            <option value="">選択してください</option>
+                            <option value="">{text.chooseOption}</option>
                             {question.options.map((option) => (
                               <option value={option} key={option}>
                                 {option}
@@ -1380,7 +1498,7 @@ export default function Home() {
                 </section>
               </div>
               <div className="materialSuggestionArea">
-                <h3>追加できる材料</h3>
+                <h3>{text.additionalMaterial}</h3>
                 <div className="themeGrid">
                   {materialCheck.suggestions.map((suggestion) => (
                     <label className={selectedMaterialSuggestionIds.includes(suggestion.id) ? "selectCard selected" : "selectCard"} key={suggestion.id}>
@@ -1392,7 +1510,7 @@ export default function Home() {
                   ))}
                 </div>
                 <button className="secondaryButton" type="button" onClick={applyMaterialEnhancements}>
-                  選んだ材料を追加
+                  {text.addSelectedMaterial}
                 </button>
               </div>
             </div>
@@ -1409,10 +1527,10 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="pdfPane" aria-label="PDF読み込み">
+        <section className="pdfPane" aria-label={text.pdfSection}>
           <div className="sectionHeader">
             <FileText size={18} />
-            <h2>PDFを読み込む（任意・3件まで）</h2>
+            <h2>{text.pdfSection}</h2>
           </div>
           <div className="pdfControls">
             <input
@@ -1422,7 +1540,7 @@ export default function Home() {
               onChange={(event) => {
                 const selectedFiles = Array.from(event.target.files ?? []);
                 if (selectedFiles.length > 3) {
-                  setError("PDFは3件まで選択できます。");
+                  setError(text.pdfLimitError);
                   setPdfFiles(selectedFiles.slice(0, 3));
                 } else {
                   setError(undefined);
@@ -1435,16 +1553,16 @@ export default function Home() {
             />
             <label className="inlineToggle">
               <input type="checkbox" checked={forcePdfOcr} onChange={(event) => setForcePdfOcr(event.target.checked)} />
-              スキャンPDFはOCRで読む
+              {text.pdfOcr}
             </label>
             <button className="secondaryButton compact" type="button" onClick={() => readPdf()} disabled={busy || pdfFiles.length === 0}>
               {status === "pdf" ? <Loader2 size={17} className="spin" /> : <FileText size={17} />}
-              PDFを読む
+              {text.readPdf}
             </button>
             {pdfInsight && (
               <button className="secondaryButton compact" type="button" onClick={() => readPdf(pdfInsight.themes.map((theme) => theme.title))} disabled={busy}>
                 <RefreshCcw size={17} />
-                別の観点で再抽出
+                {text.reExtractPdf}
               </button>
             )}
           </div>
@@ -1458,7 +1576,7 @@ export default function Home() {
           {pdfInsight && (
             <div className="pdfResult">
               <h3>{pdfInsight.documentTitle}</h3>
-              {pdfMode && <small className="modeBadge">読み取り: {pdfMode === "mixed" ? "複数方式" : pdfMode === "openai-ocr" ? "OpenAI OCR" : "PDF内テキスト"}</small>}
+              {pdfMode && <small className="modeBadge">{text.readMode}: {pdfMode === "mixed" ? text.mixedMode : pdfMode === "openai-ocr" ? "OpenAI OCR" : text.pdfTextMode}</small>}
               <p>{renderMathText(pdfInsight.summary)}</p>
               <div className="themeGrid">
                 {pdfInsight.themes.map((theme) => (
@@ -1475,14 +1593,14 @@ export default function Home() {
         </section>
 
         <div className="workflowGrid">
-          <section aria-label="内容候補">
+          <section aria-label={text.contentPointsSection}>
             <div className="sectionHeader">
               <MessageSquareText size={18} />
-              <h2>2. 内容候補を選ぶ</h2>
+              <h2>{text.contentPointsSection}</h2>
             </div>
             <div className="questionList">
               {contentPoints.length === 0 ? (
-                <div className="placeholderBlock">テーマと材料を入れて「内容候補を作る」を押すと、レポートに入れる候補が表示されます。</div>
+                <div className="placeholderBlock">{text.contentPointsPlaceholder}</div>
               ) : (
                 contentPoints.map((point) => (
                   <label className={selectedContentPointIds.includes(point.id) ? "selectCard selected" : "selectCard"} key={point.id}>
@@ -1497,42 +1615,42 @@ export default function Home() {
               )}
             </div>
             <div className="customPointRow">
-              <input value={customPoint} onChange={(event) => setCustomPoint(event.target.value)} placeholder="自分で内容候補を追加" />
+              <input value={customPoint} onChange={(event) => setCustomPoint(event.target.value)} placeholder={text.addContentPointPlaceholder} />
               <button className="secondaryButton compact" type="button" onClick={addCustomContentPoint}>
-                追加
+                {text.add}
               </button>
             </div>
             {contentPoints.length > 0 && (
               <button className="secondaryButton" type="button" onClick={() => getPlans("initial")} disabled={busy}>
                 {status === "plans" ? <Loader2 size={18} className="spin" /> : <BookOpen size={18} />}
-                プランを作る
+                {text.createPlan}
               </button>
             )}
           </section>
 
-          <section aria-label="レポートプラン">
+          <section aria-label={text.planSection}>
             <div className="sectionHeader">
               <BookOpen size={18} />
-              <h2>3. プランを選ぶ・編集する</h2>
-              {planRevisionCount > 0 && <span className="selectedChip">編集 {planRevisionCount}回</span>}
+              <h2>{text.planSection}</h2>
+              {planRevisionCount > 0 && <span className="selectedChip">{text.editCount} {planRevisionCount}{text.editCountSuffix}</span>}
             </div>
             {plans.length > 0 && (
               <div className="planRefineBox">
                 <label>
-                  <span>プランをもっと自分向けに変える</span>
+                  <span>{text.refinePlanLabel}</span>
                   <textarea
                     value={refinementInstruction}
                     onChange={(event) => setRefinementInstruction(event.target.value)}
-                    placeholder="例: プラン1は良いが、もっと授業内容に寄せたい。プラン2の比較視点も混ぜたい。"
+                    placeholder={text.refinePlanPlaceholder}
                     rows={3}
                   />
                 </label>
                 <div className="quickEditRow">
                   {[
-                    ["批判的にする", "各プランに反対意見や限界を入れて、批判的考察がしやすい形にしてください。"],
-                    ["授業寄りにする", "課題文や授業内容との接続がはっきり見えるプランにしてください。"],
-                    ["比較型にする", "比較軸を明確にして、賛否や事例を比べやすいプランにしてください。"],
-                    ["簡単にする", "大学生が書きやすいように、範囲を狭めてシンプルなプランにしてください。"]
+                    [text.quickCritical, text.quickCriticalInstruction],
+                    [text.quickCourse, text.quickCourseInstruction],
+                    [text.quickCompare, text.quickCompareInstruction],
+                    [text.quickSimple, text.quickSimpleInstruction]
                   ].map(([label, instruction]) => (
                     <button className="secondaryButton compact" type="button" onClick={() => getPlans("refine", instruction)} disabled={busy} key={label}>
                       {label}
@@ -1542,25 +1660,25 @@ export default function Home() {
                 <div className="planRefineActions">
                   <button className="secondaryButton compact" type="button" onClick={() => getPlans("refine")} disabled={busy}>
                     {status === "plans" ? <Loader2 size={17} className="spin" /> : <RefreshCcw size={17} />}
-                    編集内容で作り直す
+                    {text.remakePlan}
                   </button>
                   <button className="secondaryButton compact" type="button" onClick={() => getPlans("mix")} disabled={busy || combinePlanIds.length < 2}>
                     <BookOpen size={17} />
-                    選んだプランを混ぜる
+                    {text.mixSelectedPlans}
                   </button>
-                  <span>混ぜるプラン: {combinePlanIds.length}件</span>
+                  <span>{text.plansToMix}: {combinePlanIds.length}{text.itemCount}</span>
                 </div>
               </div>
             )}
             <div className="angleList">
               {plans.length === 0 ? (
-                <div className="placeholderBlock">内容候補を選ぶと、ここにレポートプランが表示されます。</div>
+                <div className="placeholderBlock">{text.planPlaceholder}</div>
               ) : (
                 plans.map((plan) => (
                   <article className={plan.id === selectedPlanId ? "angleCard selected" : "angleCard"} key={plan.id}>
                     <label className="mixSelect">
                       <input type="checkbox" checked={combinePlanIds.includes(plan.id)} onChange={() => toggleCombinePlan(plan.id)} />
-                      混ぜる
+                      {text.mix}
                     </label>
                     <span>{plan.title}</span>
                     <p>{renderMathText(plan.researchQuestion)}</p>
