@@ -23,6 +23,7 @@ import { track } from "@vercel/analytics";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type {
   AssignmentDetails,
+  CitationStyle,
   ContentPoint,
   InterviewAnswer,
   MaterialQualityCheck,
@@ -101,28 +102,119 @@ type GuestUser = {
 const HISTORY_KEY = "ai-librarian-history-v3";
 const USER_KEY = "ai-librarian-user-v1";
 const REPORT_PREFERENCES = [
-  { id: "personal", label: "自分の経験を入れたい", value: "個人の経験や意見を中心にする" },
-  { id: "paper", label: "論文をしっかり引用したい", value: "論文引用を重視する" },
-  { id: "facts", label: "客観的な事実を重視したい", value: "客観的事実を重視する" },
-  { id: "course", label: "授業内容に寄せたい", value: "授業内容とのつながりを重視する" },
-  { id: "comparison", label: "比較しながら書きたい", value: "比較を重視する" },
-  { id: "policy", label: "改善策まで書きたい", value: "制度や実践への提案を重視する" },
-  { id: "critical", label: "批判的に考察したい", value: "批判的考察を重視する" }
-];
+  { id: "personal", label: { ja: "自分の経験を入れたい", en: "Include my experience" }, value: { ja: "個人の経験や意見を中心にする", en: "Center personal experience and opinion" } },
+  { id: "paper", label: { ja: "論文をしっかり引用したい", en: "Use academic sources" }, value: { ja: "論文引用を重視する", en: "Prioritize academic citations" } },
+  { id: "facts", label: { ja: "客観的な事実を重視したい", en: "Focus on objective facts" }, value: { ja: "客観的事実を重視する", en: "Prioritize objective facts" } },
+  { id: "course", label: { ja: "授業内容に寄せたい", en: "Connect to class content" }, value: { ja: "授業内容とのつながりを重視する", en: "Connect the report to course content" } },
+  { id: "comparison", label: { ja: "比較しながら書きたい", en: "Write by comparison" }, value: { ja: "比較を重視する", en: "Use comparison as the main structure" } },
+  { id: "policy", label: { ja: "改善策まで書きたい", en: "Include improvements" }, value: { ja: "制度や実践への提案を重視する", en: "Include proposals for policy or practice" } },
+  { id: "critical", label: { ja: "批判的に考察したい", en: "Add critical analysis" }, value: { ja: "批判的考察を重視する", en: "Prioritize critical analysis" } }
+] as const;
 
-function languageLabel(language: OutputLanguage) {
-  if (language === "ja") return "日本語";
-  if (language === "en") return "英語";
-  return "自動";
+const UI_TEXT = {
+  ja: {
+    languageJa: "日本語",
+    languageEn: "英語",
+    languageAuto: "自動",
+    citation: "引用",
+    summary: "要約",
+    usePoint: "使いどころ",
+    link: "リンク",
+    copiedCitationSet: "引用・要約・リンクをコピーしました",
+    copiedCitationOnly: "引用だけコピーしました",
+    copiedSelectedCitations: "選択中の引用をコピーしました",
+    copiedSelectedSummaries: "選択中の要約をコピーしました",
+    selectedCitations: "選択中の引用をまとめてコピー",
+    selectedSummaries: "要約と使いどころをコピー",
+    citationOnly: "引用だけコピー",
+    summaryOnly: "要約をコピー",
+    inTextCitation: "本文中の引用例",
+    citationFormat: "引用形式",
+    citationFormatHelp: "参考文献の見た目とコピー内容を選べます。",
+    citationUse: "どこで引用するか",
+    createContent: "内容候補を作る",
+    createContentHelp: "材料を入力した後に押すと、レポートへ入れる論点候補を作ります。",
+    topicRequired: "先にレポートのテーマを入力してください。",
+    contentError: "内容候補を作成できませんでした。少し時間を置いてもう一度試してください。",
+    referencesLoading: "学術データベースから候補を探しています...",
+    reviewedCandidates: "確認した候補数",
+    searchKeywords: "検索キーワード",
+    referencesPlaceholder: "プランを選んで「参考文献を探す」を押すと、確認済みメタデータの論文候補が表示されます。",
+    relevance: "関連度",
+    useThisPaper: "この論文を使う",
+    openPaper: "論文ページを開く"
+  },
+  en: {
+    languageJa: "Japanese",
+    languageEn: "English",
+    languageAuto: "Auto",
+    citation: "Citation",
+    summary: "Summary",
+    usePoint: "Where to use it",
+    link: "Link",
+    copiedCitationSet: "Copied citation, summary, and link",
+    copiedCitationOnly: "Copied citation",
+    copiedSelectedCitations: "Copied selected citations",
+    copiedSelectedSummaries: "Copied selected summaries",
+    selectedCitations: "Copy selected citations",
+    selectedSummaries: "Copy summaries and use notes",
+    citationOnly: "Copy citation only",
+    summaryOnly: "Copy summary",
+    inTextCitation: "In-text citation",
+    citationFormat: "Citation style",
+    citationFormatHelp: "Choose how references are displayed and copied.",
+    citationUse: "Where to cite",
+    createContent: "Create content points",
+    createContentHelp: "After adding material, create candidate points for the report.",
+    topicRequired: "Enter a report topic first.",
+    contentError: "Could not create content points. Please wait a moment and try again.",
+    referencesLoading: "Searching academic databases...",
+    reviewedCandidates: "Candidates reviewed",
+    searchKeywords: "Search keywords",
+    referencesPlaceholder: "Choose a plan and search references to see papers with verified metadata.",
+    relevance: "Relevance",
+    useThisPaper: "Use this paper",
+    openPaper: "Open paper page"
+  }
+} as const;
+
+function languageLabel(language: OutputLanguage, uiLanguage: "ja" | "en" = "ja") {
+  const text = UI_TEXT[uiLanguage];
+  if (language === "ja") return text.languageJa;
+  if (language === "en") return text.languageEn;
+  return text.languageAuto;
 }
 
-function copyText(reference: ReferenceItem) {
+function citationText(reference: ReferenceItem) {
+  return reference.formattedCitation ?? reference.apa7;
+}
+
+function copyText(reference: ReferenceItem, uiLanguage: "ja" | "en") {
+  const text = UI_TEXT[uiLanguage];
   const url = reference.doi ? `https://doi.org/${reference.doi}` : reference.url;
-  return [`【引用】${reference.apa7}`, `【要約】${reference.abstractOrMetadataSummary}`, `【使いどころ】${reference.whyUseful}`, url ? `【リンク】${url}` : ""].filter(Boolean).join("\n");
+  return [
+    `${text.citation}: ${citationText(reference)}`,
+    reference.inTextCitation ? `${text.inTextCitation}: ${reference.inTextCitation}` : "",
+    `${text.summary}: ${reference.abstractOrMetadataSummary}`,
+    `${text.usePoint}: ${reference.whyUseful}`,
+    reference.citationUse ? `${text.citationUse}: ${reference.citationUse}` : "",
+    url ? `${text.link}: ${url}` : ""
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
-function copyReferenceSummary(reference: ReferenceItem) {
-  return [`${reference.title}`, `要約: ${reference.abstractOrMetadataSummary}`, `レポートでの使い方: ${reference.whyUseful}`, `引用: ${reference.apa7}`].join("\n");
+function copyReferenceSummary(reference: ReferenceItem, uiLanguage: "ja" | "en") {
+  const text = UI_TEXT[uiLanguage];
+  return [
+    reference.title,
+    `${text.summary}: ${reference.abstractOrMetadataSummary}`,
+    `${text.usePoint}: ${reference.whyUseful}`,
+    reference.citationUse ? `${text.citationUse}: ${reference.citationUse}` : "",
+    `${text.citation}: ${citationText(reference)}`
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function renderMathText(text: string) {
@@ -139,9 +231,9 @@ function renderMathText(text: string) {
   });
 }
 
-function contentTypeLabel(type: ContentPoint["type"]) {
-  return (
-    {
+function contentTypeLabel(type: ContentPoint["type"], uiLanguage: "ja" | "en") {
+  const labels = {
+    ja: {
       background: "背景",
       argument: "主張",
       case: "事例",
@@ -151,18 +243,38 @@ function contentTypeLabel(type: ContentPoint["type"]) {
       policy: "提案",
       pdf: "PDF",
       custom: "追加"
-    } satisfies Record<ContentPoint["type"], string>
-  )[type];
+    },
+    en: {
+      background: "Background",
+      argument: "Argument",
+      case: "Case",
+      theory: "Theory",
+      evidence: "Evidence",
+      counterargument: "Counterargument",
+      policy: "Proposal",
+      pdf: "PDF",
+      custom: "Custom"
+    }
+  } satisfies Record<"ja" | "en", Record<ContentPoint["type"], string>>;
+
+  return labels[uiLanguage][type];
 }
 
-function sourceLabel(source: ContentPoint["source"]) {
-  return (
-    {
+function sourceLabel(source: ContentPoint["source"], uiLanguage: "ja" | "en") {
+  const labels = {
+    ja: {
       ai: "AI提案",
       pdf: "PDF由来",
       user: "自分で追加"
-    } satisfies Record<ContentPoint["source"], string>
-  )[source];
+    },
+    en: {
+      ai: "AI suggestion",
+      pdf: "From PDF",
+      user: "Added by me"
+    }
+  } satisfies Record<"ja" | "en", Record<ContentPoint["source"], string>>;
+
+  return labels[uiLanguage][source];
 }
 
 type AnalyticsValue = string | number | boolean | null | undefined;
@@ -218,6 +330,7 @@ export default function Home() {
   const [planRevisionCount, setPlanRevisionCount] = useState(0);
   const [references, setReferences] = useState<ReferenceItem[]>([]);
   const [selectedReferenceIds, setSelectedReferenceIds] = useState<string[]>([]);
+  const [citationStyle, setCitationStyle] = useState<CitationStyle>("apa7");
   const [reportOutline, setReportOutline] = useState<ReportOutline | null>(null);
   const [draftOptions, setDraftOptions] = useState<ReportDraftOptions>({
     targetWordCount: 1200,
@@ -244,13 +357,23 @@ export default function Home() {
   const busy = status !== "idle";
   const userHistoryKey = user ? `${HISTORY_KEY}-${user.id}` : HISTORY_KEY;
   const selectedOutputLanguage: "ja" | "en" = outputLanguage === "en" ? "en" : "ja";
-  const stepItems = [
-    { label: "1. 材料", done: details.assignmentPrompt.trim().length > 0 || details.userOpinion.trim().length > 0 || selectedPdfThemes().length > 0 },
-    { label: "2. 内容候補", done: selectedContentPointIds.length > 0 },
-    { label: "3. プラン", done: Boolean(selectedPlan) },
-    { label: "4. 参考文献", done: selectedReferenceIds.length > 0 },
-    { label: "5. 下書き", done: Boolean(reportOutline || reportDraft) }
-  ];
+  const text = UI_TEXT[selectedOutputLanguage];
+  const stepItems =
+    selectedOutputLanguage === "ja"
+      ? [
+          { label: "1. 材料", done: details.assignmentPrompt.trim().length > 0 || details.userOpinion.trim().length > 0 || selectedPdfThemes().length > 0 },
+          { label: "2. 内容候補", done: selectedContentPointIds.length > 0 },
+          { label: "3. プラン", done: Boolean(selectedPlan) },
+          { label: "4. 参考文献", done: selectedReferenceIds.length > 0 },
+          { label: "5. 下書き", done: Boolean(reportOutline || reportDraft) }
+        ]
+      : [
+          { label: "1. Material", done: details.assignmentPrompt.trim().length > 0 || details.userOpinion.trim().length > 0 || selectedPdfThemes().length > 0 },
+          { label: "2. Points", done: selectedContentPointIds.length > 0 },
+          { label: "3. Plan", done: Boolean(selectedPlan) },
+          { label: "4. References", done: selectedReferenceIds.length > 0 },
+          { label: "5. Draft", done: Boolean(reportOutline || reportDraft) }
+        ];
 
   useEffect(() => {
     const savedUser = window.localStorage.getItem(USER_KEY);
@@ -341,19 +464,45 @@ export default function Home() {
     return selectedReferences.length > 0 || selectedPdfThemes().length > 0 || selectedContentPoints().length > 0;
   }
 
+  function selectedPreferenceText() {
+    return details.reportPreferences
+      .map((preference) => REPORT_PREFERENCES.find((item) => item.id === preference)?.value[selectedOutputLanguage] ?? preference)
+      .join(", ");
+  }
+
   function currentAnswers(): InterviewAnswer[] {
+    const labels =
+      selectedOutputLanguage === "ja"
+        ? {
+            assignmentPrompt: "課題文",
+            userOpinion: "自分の意見",
+            mustInclude: "必ず入れたい内容",
+            reportPreferences: "レポートの好み",
+            materialNotes: "材料チェックで追加した内容",
+            pdfThemes: "選択したPDFテーマ",
+            contentPoints: "選択した内容候補"
+          }
+        : {
+            assignmentPrompt: "Assignment prompt",
+            userOpinion: "My opinion",
+            mustInclude: "Required content",
+            reportPreferences: "Report preferences",
+            materialNotes: "Added material from material check",
+            pdfThemes: "Selected PDF themes",
+            contentPoints: "Selected content points"
+          };
     const answers: InterviewAnswer[] = [
-      { questionId: "assignment-prompt", question: "課題文", answer: details.assignmentPrompt },
-      { questionId: "user-opinion", question: "自分の意見", answer: details.userOpinion },
-      { questionId: "must-include", question: "必ず入れたい内容", answer: details.mustInclude },
-      { questionId: "report-preferences", question: "レポートの好み", answer: details.reportPreferences.join(", ") },
-      { questionId: "material-notes", question: "材料チェックで追加した内容", answer: details.materialNotes }
+      { questionId: "assignment-prompt", question: labels.assignmentPrompt, answer: details.assignmentPrompt },
+      { questionId: "user-opinion", question: labels.userOpinion, answer: details.userOpinion },
+      { questionId: "must-include", question: labels.mustInclude, answer: details.mustInclude },
+      { questionId: "report-preferences", question: labels.reportPreferences, answer: selectedPreferenceText() },
+      { questionId: "material-notes", question: labels.materialNotes, answer: details.materialNotes }
     ].filter((item) => item.answer.trim().length > 0);
 
     if (selectedPdfThemes().length > 0) {
       answers.push({
         questionId: "selected-pdf-themes",
-        question: "選択したPDFテーマ",
+        question: labels.pdfThemes,
         answer: selectedPdfThemes().map((theme) => `${theme.title}: ${theme.summary}`).join(" / ")
       });
     }
@@ -361,7 +510,7 @@ export default function Home() {
     if (selectedContentPoints().length > 0) {
       answers.push({
         questionId: "selected-content-points",
-        question: "選択した内容候補",
+        question: labels.contentPoints,
         answer: selectedContentPoints().map((point) => `${point.title}: ${point.description}`).join(" / ")
       });
     }
@@ -369,8 +518,7 @@ export default function Home() {
     return answers;
   }
 
-  async function suggestContentPoints(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function suggestContentPoints() {
     if (!topic.trim()) return;
 
     setStatus("points");
@@ -413,7 +561,7 @@ export default function Home() {
         usedFallback: result.usedFallback
       });
     } catch {
-      setError("内容候補を作成できませんでした。少し時間を置いてもう一度試してください。");
+      setError(text.contentError);
     } finally {
       setStatus("idle");
     }
@@ -421,7 +569,7 @@ export default function Home() {
 
   async function checkMaterialQuality() {
     if (!topic.trim()) {
-      setError("先にレポートのテーマを入力してください。");
+      setError(text.topicRequired);
       return;
     }
 
@@ -552,7 +700,7 @@ export default function Home() {
       const response = await fetch("/api/references", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ candidate: plan, outputLanguage: selectedOutputLanguage, citationStyle: "apa7" })
+        body: JSON.stringify({ candidate: plan, outputLanguage: selectedOutputLanguage, citationStyle })
       });
 
       if (!response.ok) throw new Error("references");
@@ -1087,7 +1235,7 @@ export default function Home() {
               <button className="historyItem" type="button" key={entry.id} onClick={() => loadHistory(entry)}>
                 <span>{entry.topic}</span>
                 <small>
-                  {new Date(entry.createdAt).toLocaleDateString()} / {languageLabel(entry.outputLanguage)}
+                  {new Date(entry.createdAt).toLocaleDateString()} / {languageLabel(entry.outputLanguage, selectedOutputLanguage)}
                 </small>
                 <X
                   size={15}
@@ -1104,24 +1252,25 @@ export default function Home() {
       </aside>
 
       <section className="workspace">
-        <form className="searchBand" onSubmit={suggestContentPoints}>
+        <div className="searchBand">
           <div className="topicField">
-            <label htmlFor="topic">レポートのテーマ</label>
-            <input id="topic" value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="例: 生成AIと大学教育" />
+            <label htmlFor="topic">{selectedOutputLanguage === "ja" ? "レポートのテーマ" : "Report topic"}</label>
+            <input
+              id="topic"
+              value={topic}
+              onChange={(event) => setTopic(event.target.value)}
+              placeholder={selectedOutputLanguage === "ja" ? "例: 生成AIと大学教育" : "Example: Generative AI and university education"}
+            />
           </div>
-          <div className="languageControl" aria-label="出力言語">
+          <div className="languageControl" aria-label={selectedOutputLanguage === "ja" ? "出力言語" : "Output language"}>
             <Languages size={18} />
             {(["ja", "en"] as const).map((language) => (
               <button className={selectedOutputLanguage === language ? "segmented active" : "segmented"} key={language} onClick={() => setOutputLanguage(language)} type="button">
-                {languageLabel(language)}
+                {languageLabel(language, selectedOutputLanguage)}
               </button>
             ))}
           </div>
-          <button className="primaryButton" type="submit" disabled={busy}>
-            {status === "points" ? <Loader2 size={18} className="spin" /> : <MessageSquareText size={18} />}
-            内容候補を作る
-          </button>
-        </form>
+        </div>
 
         <nav className="stepRail" aria-label="作成ステップ">
           {stepItems.map((step) => (
@@ -1162,19 +1311,23 @@ export default function Home() {
             </label>
           </div>
           <div className="preferenceBox">
-            <span>レポートの好み</span>
+            <span>{selectedOutputLanguage === "ja" ? "レポートの好み" : "Report preferences"}</span>
             <div className="preferenceGrid">
               {REPORT_PREFERENCES.map((preference) => (
-                <label className={details.reportPreferences.includes(preference.value) ? "preferenceChip selected" : "preferenceChip"} key={preference.id}>
-                  <input type="checkbox" checked={details.reportPreferences.includes(preference.value)} onChange={() => toggleReportPreference(preference.value)} />
-                  {preference.label}
+                <label className={details.reportPreferences.includes(preference.id) ? "preferenceChip selected" : "preferenceChip"} key={preference.id}>
+                  <input type="checkbox" checked={details.reportPreferences.includes(preference.id)} onChange={() => toggleReportPreference(preference.id)} />
+                  {preference.label[selectedOutputLanguage]}
                 </label>
               ))}
             </div>
             <div className="customPreferenceRow">
-              <input value={customPreference} onChange={(event) => setCustomPreference(event.target.value)} placeholder="自分の好みを追加（例: 地元の事例を入れたい）" />
+              <input
+                value={customPreference}
+                onChange={(event) => setCustomPreference(event.target.value)}
+                placeholder={selectedOutputLanguage === "ja" ? "自分の好みを追加（例: 地元の事例を入れたい）" : "Add your own preference, e.g. include a local case"}
+              />
               <button className="secondaryButton compact" type="button" onClick={addCustomPreference}>
-                追加
+                {selectedOutputLanguage === "ja" ? "追加" : "Add"}
               </button>
             </div>
           </div>
@@ -1244,6 +1397,16 @@ export default function Home() {
               </div>
             </div>
           )}
+          <div className="materialCheckBox">
+            <div>
+              <strong>{text.createContent}</strong>
+              <p>{text.createContentHelp}</p>
+            </div>
+            <button className="primaryButton" type="button" onClick={() => suggestContentPoints()} disabled={busy || !topic.trim()}>
+              {status === "points" ? <Loader2 size={18} className="spin" /> : <MessageSquareText size={18} />}
+              {text.createContent}
+            </button>
+          </div>
         </section>
 
         <section className="pdfPane" aria-label="PDF読み込み">
@@ -1327,7 +1490,7 @@ export default function Home() {
                     <span>{point.title}</span>
                     <small>{renderMathText(point.description)}</small>
                     <em>
-                      {contentTypeLabel(point.type)} / {sourceLabel(point.source)}
+                      {contentTypeLabel(point.type, selectedOutputLanguage)} / {sourceLabel(point.source, selectedOutputLanguage)}
                     </em>
                   </label>
                 ))
@@ -1410,7 +1573,7 @@ export default function Home() {
                     <p className="whyUseful">{renderMathText(plan.thesisHint)}</p>
                     <button className="secondaryButton compact" type="button" onClick={() => getReferences(plan)} disabled={status === "references"}>
                       {status === "references" && selectedPlanId === plan.id ? <Loader2 size={17} className="spin" /> : <Search size={17} />}
-                      参考文献を探す
+                      {selectedOutputLanguage === "ja" ? "参考文献を探す" : "Find references"}
                     </button>
                   </article>
                 ))
@@ -1422,25 +1585,42 @@ export default function Home() {
         <section className="referencesPane" aria-label="参考文献">
           <div className="sectionHeader">
             <Library size={18} />
-            <h2>4. 参考文献を選ぶ</h2>
+            <h2>{selectedOutputLanguage === "ja" ? "4. 参考文献を選ぶ" : "4. Choose References"}</h2>
             {selectedPlan && <span className="selectedChip">{selectedPlan.title}</span>}
+          </div>
+          <div className="materialCheckBox">
+            <div>
+              <strong>{text.citationFormat}</strong>
+              <p>{text.citationFormatHelp}</p>
+            </div>
+            <select
+              value={citationStyle}
+              onChange={(event) => {
+                setCitationStyle(event.target.value as CitationStyle);
+                setReferences([]);
+                setSelectedReferenceIds([]);
+              }}
+            >
+              <option value="apa7">APA 7</option>
+              <option value="chicago">Chicago</option>
+            </select>
           </div>
           {copyNotice && <div className="copyNotice">{copyNotice}</div>}
 
           {status === "references" && (
             <div className="loadingBlock">
               <Loader2 size={24} className="spin" />
-              <span>学術データベースから候補を探しています...</span>
+              <span>{text.referencesLoading}</span>
             </div>
           )}
 
           {(warnings.length > 0 || totalReviewed !== undefined) && (
             <div className="notice">
-              {totalReviewed !== undefined && <p>確認した候補数: {totalReviewed}</p>}
+              {totalReviewed !== undefined && <p>{text.reviewedCandidates}: {totalReviewed}</p>}
               {warnings.map((warning) => (
                 <p key={warning}>{warning}</p>
               ))}
-              {alternatives.length > 0 && <p>検索キーワード: {alternatives.join(", ")}</p>}
+              {alternatives.length > 0 && <p>{text.searchKeywords}: {alternatives.join(", ")}</p>}
               {refinements.length > 0 && <p>{refinements.join(" / ")}</p>}
             </div>
           )}
@@ -1453,15 +1633,15 @@ export default function Home() {
                   copyToClipboard(
                     references
                       .filter((reference) => selectedReferenceIds.includes(reference.id))
-                      .map((reference) => reference.apa7)
+                      .map(citationText)
                       .join("\n\n"),
-                    "選択中の引用をコピーしました"
+                    text.copiedSelectedCitations
                   )
                 }
                 disabled={selectedReferenceIds.length === 0}
               >
                 <Clipboard size={16} />
-                選択中の引用をまとめてコピー
+                {text.selectedCitations}
               </button>
               <button
                 className="secondaryButton compact"
@@ -1470,28 +1650,28 @@ export default function Home() {
                   copyToClipboard(
                     references
                       .filter((reference) => selectedReferenceIds.includes(reference.id))
-                      .map(copyReferenceSummary)
+                      .map((reference) => copyReferenceSummary(reference, selectedOutputLanguage))
                       .join("\n\n---\n\n"),
-                    "選択中の要約をコピーしました"
+                    text.copiedSelectedSummaries
                   )
                 }
                 disabled={selectedReferenceIds.length === 0}
               >
                 <Clipboard size={16} />
-                要約と使いどころをコピー
+                {text.selectedSummaries}
               </button>
             </div>
           )}
 
           <div className="referenceList">
             {references.length === 0 && status !== "references" ? (
-              <div className="placeholderBlock">プランを選んで「参考文献を探す」を押すと、確認済みメタデータの論文候補が表示されます。</div>
+              <div className="placeholderBlock">{text.referencesPlaceholder}</div>
             ) : (
               references.map((reference) => (
                 <article className="referenceCard" key={reference.id}>
                   <div className="referenceTopline">
                     <span>{reference.sourceProvider}</span>
-                    <span>関連度 {reference.relevanceScore}%</span>
+                    <span>{text.relevance} {reference.relevanceScore}%</span>
                   </div>
                   <div className="referenceMeta">
                     <span>{reference.year ?? "n.d."}</span>
@@ -1500,29 +1680,41 @@ export default function Home() {
                   <h3>{reference.title}</h3>
                   <label className="paperSelect">
                     <input type="checkbox" checked={selectedReferenceIds.includes(reference.id)} onChange={() => toggleReference(reference.id)} />
-                    この論文を使う
+                    {text.useThisPaper}
                   </label>
                   <p className="authors">{reference.authors.join(", ")}</p>
-                  <h4>要約</h4>
+                  <h4>{text.summary}</h4>
                   <p>{renderMathText(reference.abstractOrMetadataSummary)}</p>
-                  <h4>レポートでの使いどころ</h4>
+                  <h4>{text.usePoint}</h4>
                   <p className="whyUseful">{renderMathText(reference.whyUseful)}</p>
+                  {reference.inTextCitation && (
+                    <>
+                      <h4>{text.inTextCitation}</h4>
+                      <p className="whyUseful">{reference.inTextCitation}</p>
+                    </>
+                  )}
+                  {reference.citationUse && (
+                    <>
+                      <h4>{text.citationUse}</h4>
+                      <p className="whyUseful">{reference.citationUse}</p>
+                    </>
+                  )}
                   <div className="citationRow">
-                    <code>{reference.apa7}</code>
-                    <button className="iconButton" type="button" onClick={() => copyToClipboard(copyText(reference), "引用・要約・リンクをコピーしました")} aria-label="引用をコピー" title="引用をコピー">
+                    <code>{citationText(reference)}</code>
+                    <button className="iconButton" type="button" onClick={() => copyToClipboard(copyText(reference, selectedOutputLanguage), text.copiedCitationSet)} aria-label={text.citationOnly} title={text.citationOnly}>
                       <Clipboard size={16} />
                     </button>
                   </div>
                   <div className="referenceButtonRow">
-                    <button className="secondaryButton compact" type="button" onClick={() => copyToClipboard(reference.apa7, "APA引用をコピーしました")}>
-                      引用だけコピー
+                    <button className="secondaryButton compact" type="button" onClick={() => copyToClipboard(citationText(reference), text.copiedCitationOnly)}>
+                      {text.citationOnly}
                     </button>
-                    <button className="secondaryButton compact" type="button" onClick={() => copyToClipboard(copyReferenceSummary(reference), "要約をコピーしました")}>
-                      要約をコピー
+                    <button className="secondaryButton compact" type="button" onClick={() => copyToClipboard(copyReferenceSummary(reference, selectedOutputLanguage), text.copiedSelectedSummaries)}>
+                      {text.summaryOnly}
                     </button>
                   </div>
                   <a href={reference.doi ? `https://doi.org/${reference.doi}` : reference.url} target="_blank" rel="noreferrer">
-                    論文ページを開く
+                    {text.openPaper}
                   </a>
                 </article>
               ))

@@ -381,7 +381,7 @@ export function fallbackReportDraft(
   outputLanguage: "ja" | "en"
 ): ReportDraft {
   const ja = isJa(outputLanguage);
-  const bibliography = references.map((reference) => reference.apa7);
+  const bibliography = references.map((reference) => reference.formattedCitation ?? reference.apa7);
   const sectionText = (outline?.sections ?? fallbackReportOutline(plan, references, pdfThemes, contentPoints, outputLanguage).sections)
     .map((section) => `${section.title}\n${section.purpose}\n${section.keyPoints.join("\n")}`)
     .join("\n\n");
@@ -511,7 +511,7 @@ export function fallbackRevisedReportDraft(
     wordCountEstimate: revisedText.split(/\s+/).filter(Boolean).length,
     languageLevel: options.languageLevel,
     humanLike: options.humanLike,
-    bibliography: draft.bibliography.length ? draft.bibliography : references.map((reference) => reference.apa7),
+    bibliography: draft.bibliography.length ? draft.bibliography : references.map((reference) => reference.formattedCitation ?? reference.apa7),
     notes: ja ? ["選択した改善点を改訂メモとして追加しました。本文に自然に組み込んでください。", "論文の本文や抄録を確認してから根拠として使ってください。"] : ["Selected improvements were added as revision guidance.", "Check abstracts or full texts before using papers as evidence."],
     appliedImprovementIds: selectedImprovements.map((item) => item.id),
     customImprovements

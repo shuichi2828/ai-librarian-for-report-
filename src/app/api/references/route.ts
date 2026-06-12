@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { formatApa7 } from "@/lib/citation";
+import { formatApa7, formatCitation, formatInTextCitation } from "@/lib/citation";
 import { fallbackSummary } from "@/lib/fallbacks";
 import { resolveOutputLanguage } from "@/lib/language";
 import { enrichReferences } from "@/lib/openai";
@@ -28,7 +28,7 @@ const candidateSchema = z.object({
 const requestSchema = z.object({
   candidate: candidateSchema,
   outputLanguage: z.enum(["ja", "en", "auto"]).default("ja"),
-  citationStyle: z.literal("apa7").default("apa7")
+  citationStyle: z.enum(["apa7", "chicago"]).default("apa7")
 });
 
 function candidateText(candidate: ThemeCandidate): string {
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid reference request." }, { status: 400 });
   }
 
-  const { outputLanguage } = parsed.data;
+  const { citationStyle, outputLanguage } = parsed.data;
   const candidate = {
     ...parsed.data.candidate,
     contentPointIds: parsed.data.candidate.contentPointIds ?? []
@@ -102,6 +102,8 @@ export async function POST(request: Request) {
   }
 
   const references: ReferenceItem[] = ranked.map(({ paper, relevance }) => {
+    const formattedCitation = formatCitation(paper, citationStyle);
+    const inTextCitation = formatInTextCitation(paper, citationStyle);
     const reference: ReferenceItem = {
       id: buildReferenceId({ doi: paper.doi, title: paper.title }),
       title: paper.title,
@@ -115,6 +117,13 @@ export async function POST(request: Request) {
       abstractOrMetadataSummary: "",
       whyUseful: "",
       apa7: formatApa7(paper),
+      citationStyle,
+      formattedCitation,
+      inTextCitation,
+      citationUse:
+        language === "ja"
+          ? `本文では ${inTextCitation} のように示し、この論文が支える主張や段落の直後で使います。`
+          : `Use ${inTextCitation} near the sentence or paragraph supported by this source.`,
       sourceProvider: paper.provider,
       citationCount: paper.citationCount,
       relevanceScore: relevance.score,

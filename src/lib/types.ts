@@ -1,5 +1,7 @@
 export type OutputLanguage = "ja" | "en" | "auto";
 
+export type CitationStyle = "apa7" | "chicago";
+
 export type LibrarianQuestion = {
   id: string;
   type: "choice" | "text";
@@ -99,6 +101,10 @@ export type ReferenceItem = {
   abstractOrMetadataSummary: string;
   whyUseful: string;
   apa7: string;
+  citationStyle?: CitationStyle;
+  formattedCitation?: string;
+  inTextCitation?: string;
+  citationUse?: string;
   sourceProvider: string;
   citationCount?: number;
   relevanceScore: number;

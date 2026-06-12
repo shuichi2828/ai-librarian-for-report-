@@ -494,6 +494,9 @@ export async function generateReportOutline(
     year: reference.year,
     summary: reference.abstractOrMetadataSummary,
     relevanceScore: reference.relevanceScore,
+    citationStyle: reference.citationStyle ?? "apa7",
+    citation: reference.formattedCitation ?? reference.apa7,
+    inTextCitation: reference.inTextCitation,
     apa7: reference.apa7
   }));
 
@@ -543,6 +546,9 @@ export async function generateReportDraft(
     sourceName: reference.sourceName,
     summary: reference.abstractOrMetadataSummary,
     relevanceScore: reference.relevanceScore,
+    citationStyle: reference.citationStyle ?? "apa7",
+    citation: reference.formattedCitation ?? reference.apa7,
+    inTextCitation: reference.inTextCitation,
     apa7: reference.apa7
   }));
 
@@ -550,7 +556,7 @@ export async function generateReportDraft(
     "You are an academic librarian helping an undergraduate turn a plan into an editable report draft.",
     "Write a draft that the student can revise, not a final submission. Add a note reminding the student to verify full texts and course rules.",
     "Use only the selected verified papers for citations. Do not invent sources, page numbers, quotes, or findings.",
-    "Use in-text citations when a selected paper supports a claim, and include the APA 7 bibliography entries supplied by the system.",
+    "Use the supplied in-text citation examples when a selected paper supports a claim, and include the supplied bibliography entries in the selected citation style.",
     "If no selected papers are provided, write a PDF-only draft grounded in the selected PDF themes and content points. Clearly state that no external paper citations are included yet.",
     "If a paper only has metadata summary, avoid detailed claims that would require reading the full paper.",
     "If writingStyle is academic, use formal academic prose, clear topic sentences, cautious claims, and transitions suitable for a university report.",
@@ -611,6 +617,9 @@ export async function generatePersonalizationCheck(
     authors: reference.authors,
     year: reference.year,
     summary: reference.abstractOrMetadataSummary,
+    citationStyle: reference.citationStyle ?? "apa7",
+    citation: reference.formattedCitation ?? reference.apa7,
+    inTextCitation: reference.inTextCitation,
     apa7: reference.apa7
   }));
 
@@ -663,6 +672,9 @@ export async function generateRevisedReportDraft(
     authors: reference.authors,
     year: reference.year,
     summary: reference.abstractOrMetadataSummary,
+    citationStyle: reference.citationStyle ?? "apa7",
+    citation: reference.formattedCitation ?? reference.apa7,
+    inTextCitation: reference.inTextCitation,
     apa7: reference.apa7
   }));
 
