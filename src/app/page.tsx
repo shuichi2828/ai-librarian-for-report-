@@ -319,14 +319,24 @@ function cleanPageNumber(page: string) {
   return page.trim().replace(/\s+/g, " ");
 }
 
+function hasPagePlaceholder(text?: string) {
+  return typeof text === "string" && /(?:\{\s*page\s*\}|\[\s*page\s*\])/i.test(text);
+}
+
+function replacePagePlaceholder(text: string, page: string) {
+  return text.replace(/(?:\{\s*page\s*\}|\[\s*page\s*\])/gi, page);
+}
+
 function inTextCitationText(reference: ReferenceItem, pageNumber = "") {
   if (!reference.inTextCitation) return "";
   if (reference.citationStyle !== "chicago") return reference.inTextCitation;
 
+  if (!hasPagePlaceholder(reference.inTextCitation)) return reference.inTextCitation;
+
   const page = cleanPageNumber(pageNumber);
   if (!page) return "";
 
-  return reference.inTextCitation.replace("[page]", page);
+  return replacePagePlaceholder(reference.inTextCitation, page);
 }
 
 function citationUseText(reference: ReferenceItem, uiLanguage: "ja" | "en", pageNumber = "") {
@@ -1876,7 +1886,7 @@ export default function Home() {
                   <p>{renderMathText(reference.abstractOrMetadataSummary)}</p>
                   <h4>{text.usePoint}</h4>
                   <p className="whyUseful">{renderMathText(reference.whyUseful)}</p>
-                  {reference.citationStyle === "chicago" && reference.inTextCitation?.includes("[page]") && (
+                  {reference.citationStyle === "chicago" && hasPagePlaceholder(reference.inTextCitation) && (
                     <label className="citationPageField">
                       <span>{text.citationPage}</span>
                       <small>{text.citationPageHelp}</small>
