@@ -117,6 +117,12 @@ const UI_TEXT = {
     languageEn: "英語",
     languageAuto: "自動",
     appTitle: "レポート作成AI",
+    loginTitle: "AI Report Builder",
+    loginIntro: "レポート作成を始める前に、言語を選んでください。",
+    loginNameHelp: "名前またはメールアドレスを入力して始めましょう。",
+    loginNameLabel: "名前またはメールアドレス",
+    loginNamePlaceholder: "student@example.com",
+    loginStart: "始める",
     history: "履歴",
     clearHistory: "履歴を削除",
     emptyHistory: "保存したレポートプランがここに表示されます。",
@@ -212,6 +218,12 @@ const UI_TEXT = {
     languageEn: "English",
     languageAuto: "Auto",
     appTitle: "Report Writing AI",
+    loginTitle: "AI Report Builder",
+    loginIntro: "Choose your language before starting your report.",
+    loginNameHelp: "Enter your name or email address to begin.",
+    loginNameLabel: "Name or email address",
+    loginNamePlaceholder: "student@example.com",
+    loginStart: "Start",
     history: "History",
     clearHistory: "Clear history",
     emptyHistory: "Saved report plans will appear here.",
@@ -1367,19 +1379,29 @@ export default function Home() {
   if (!user) {
     return (
       <main className="loginShell">
-        <section className="loginPanel">
-          <div className="brandMark">
-            <Library size={22} />
+        <section className="loginPanel" aria-labelledby="loginTitle">
+          <div className="appGlyph" aria-hidden="true">
+            <span />
+            <span />
+            <span />
           </div>
           <p className="eyebrow">AI Librarian</p>
-          <h1>レポート作成AI</h1>
-          <p className="loginText">名前またはメールアドレスを入力して始めます。このログインは、この端末の保存履歴を分けるためだけに使います。</p>
+          <h1 id="loginTitle">{text.loginTitle}</h1>
+          <div className="languageControl loginLanguage" aria-label={selectedOutputLanguage === "ja" ? "表示言語" : "Display language"}>
+            <Languages size={18} />
+            {(["ja", "en"] as const).map((language) => (
+              <button className={selectedOutputLanguage === language ? "segmented active" : "segmented"} key={language} onClick={() => setOutputLanguage(language)} type="button">
+                {language === "ja" ? "Japanese" : "English"}
+              </button>
+            ))}
+          </div>
+          <p className="loginText">{text.loginIntro}</p>
           <form className="loginForm" onSubmit={login}>
-            <label htmlFor="loginName">名前またはメールアドレス</label>
-            <input id="loginName" value={loginName} onChange={(event) => setLoginName(event.target.value)} placeholder="student@example.com" autoComplete="email" />
+            <label htmlFor="loginName">{text.loginNameHelp}</label>
+            <input id="loginName" value={loginName} onChange={(event) => setLoginName(event.target.value)} placeholder={text.loginNamePlaceholder} autoComplete="email" aria-label={text.loginNameLabel} />
             <button className="primaryButton" type="submit">
               <UserRound size={18} />
-              始める
+              {text.loginStart}
             </button>
           </form>
         </section>

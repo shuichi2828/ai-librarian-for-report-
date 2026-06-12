@@ -49,38 +49,90 @@ button {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 22px;
+  padding: 32px 22px;
 }
 
 .loginPanel {
-  width: min(100%, 440px);
+  width: min(100%, 520px);
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
   box-shadow: var(--shadow);
-  padding: 28px;
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 44px 34px;
+  text-align: center;
 }
 
 .loginPanel h1 {
-  margin: 8px 0 10px;
-  font-size: 28px;
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.15;
+}
+
+.appGlyph {
+  width: 64px;
+  height: 64px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fdfaf2;
+  display: grid;
+  grid-template-columns: repeat(3, 7px);
+  align-items: end;
+  justify-content: center;
+  gap: 5px;
+  padding: 14px 0;
+  color: var(--teal);
+}
+
+.appGlyph span {
+  display: block;
+  width: 7px;
+  border-radius: 99px;
+  background: currentColor;
+}
+
+.appGlyph span:nth-child(1) {
+  height: 20px;
+}
+
+.appGlyph span:nth-child(2) {
+  height: 34px;
+}
+
+.appGlyph span:nth-child(3) {
+  height: 26px;
 }
 
 .loginText {
+  max-width: 360px;
+  margin: -4px 0 0;
   color: var(--muted);
   line-height: 1.55;
 }
 
+.loginLanguage {
+  width: min(100%, 340px);
+  justify-content: center;
+}
+
+.loginLanguage .segmented {
+  flex: 1;
+}
+
 .loginForm {
+  width: min(100%, 380px);
   display: grid;
-  gap: 10px;
-  margin-top: 18px;
+  gap: 12px;
+  margin-top: 4px;
 }
 
 .loginForm label {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
+  line-height: 1.5;
 }
 
 .loginForm input {
@@ -1242,6 +1294,10 @@ code {
   .languageControl {
     display: grid;
     grid-template-columns: auto repeat(3, 1fr);
+  }
+
+  .loginLanguage {
+    grid-template-columns: auto repeat(2, 1fr);
   }
 
   .selectedChip {

@@ -12,19 +12,21 @@ describe("Home", () => {
   it("renders search controls and language switch", () => {
     render(<Home />);
 
-    expect(screen.getByLabelText("Name or email")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Log in" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "AI Report Builder" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Japanese" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "English" })).toBeInTheDocument();
   });
 
   it("renders app controls after login", async () => {
     const user = userEvent.setup();
     render(<Home />);
 
-    await user.type(screen.getByLabelText("Name or email"), "student@example.com");
-    await user.click(screen.getByRole("button", { name: "Log in" }));
+    await user.click(screen.getByRole("button", { name: "English" }));
+    await user.type(screen.getByLabelText("Name or email address"), "student@example.com");
+    await user.click(screen.getByRole("button", { name: "Start" }));
 
-    expect(screen.getByLabelText("Research topic")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ask librarian" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Report topic")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create content points" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "English" })).toBeInTheDocument();
   });
 
@@ -34,25 +36,18 @@ describe("Home", () => {
     vi.spyOn(global, "fetch").mockImplementation(async (input) => {
       const url = String(input);
 
-      if (url.includes("librarian-questions")) {
+      if (url.includes("content-points")) {
         return new Response(
           JSON.stringify({
-            questions: [
+            points: [
               {
-                id: "purpose",
-                type: "choice",
-                label: "What should this report prioritize?",
-                helpText: "Choose a direction",
-                options: ["Background overview", "Solutions"],
-                required: true
-              },
-              {
-                id: "detail",
-                type: "text",
-                label: "What interests you most?",
-                helpText: "One sentence",
-                options: [],
-                required: false
+                id: "point-1",
+                title: "Evidence point",
+                description: "Use university AI policy as evidence.",
+                type: "evidence",
+                keywordsJa: ["大学", "AI"],
+                keywordsEn: ["university", "AI"],
+                source: "user"
               }
             ],
             outputLanguage: "en",
@@ -111,12 +106,14 @@ describe("Home", () => {
     });
 
     render(<Home />);
-    await user.type(screen.getByLabelText("Name or email"), "student@example.com");
-    await user.click(screen.getByRole("button", { name: "Log in" }));
-    await user.click(screen.getByRole("button", { name: "Ask librarian" }));
+    await user.click(screen.getByRole("button", { name: "English" }));
+    await user.type(screen.getByLabelText("Name or email address"), "student@example.com");
+    await user.click(screen.getByRole("button", { name: "Start" }));
+    await user.click(screen.getByRole("button", { name: "Create content points" }));
 
-    expect(await screen.findByText("What should this report prioritize?")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Create report plans" }));
+    expect(await screen.findByText("Evidence point")).toBeInTheDocument();
+    await user.click(screen.getByLabelText(/Evidence point/));
+    await user.click(screen.getByRole("button", { name: "Create plan" }));
     expect(await screen.findByText("Policy angle")).toBeInTheDocument();
   });
 });
