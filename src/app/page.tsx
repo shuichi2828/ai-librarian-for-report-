@@ -590,12 +590,14 @@ function trackUsage(eventName: string, properties: Record<string, string | numbe
 function LoadingScreen({
   language,
   message,
+  progress,
   status,
   tip,
   topic
 }: {
   language: "ja" | "en";
   message: string;
+  progress: number;
   status: WorkflowStatus;
   tip: string;
   topic: string;
@@ -624,7 +626,7 @@ function LoadingScreen({
           <span>100%</span>
         </div>
         <div className="loadingProgressBar" aria-hidden="true">
-          <span />
+          <span style={{ width: `${progress}%` }} />
         </div>
         <p className="loadingMessage">{message}</p>
         <div className="loadingTip">
@@ -692,6 +694,7 @@ export default function Home() {
   const [copyNotice, setCopyNotice] = useState("");
   const [activeStep, setActiveStep] = useState<ActiveStep>(0);
   const [loadingTipIndex, setLoadingTipIndex] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState(8);
 
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedPlanId), [plans, selectedPlanId]);
   const busy = status !== "idle";
@@ -746,10 +749,32 @@ export default function Home() {
     setLoadingTipIndex(0);
     const intervalId = window.setInterval(() => {
       setLoadingTipIndex((current) => (current + 1) % loadingTips.length);
-    }, 2800);
+    }, 8000);
 
     return () => window.clearInterval(intervalId);
   }, [loadingTips.length, selectedOutputLanguage, status]);
+
+  useEffect(() => {
+    if (status === "idle") {
+      setLoadingProgress(8);
+      return;
+    }
+
+    setLoadingProgress(8);
+    const intervalId = window.setInterval(() => {
+      setLoadingProgress((current) => {
+        if (current >= 94) return current;
+        const increment = current < 45 ? 7 : current < 75 ? 4 : 1.5;
+        return Math.min(94, current + increment);
+      });
+    }, 650);
+
+    return () => window.clearInterval(intervalId);
+  }, [status]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+  }, [activeStep]);
 
   useEffect(() => {
     const acceptedTerms = window.localStorage.getItem(TERMS_KEY) === "true";
@@ -1767,7 +1792,7 @@ export default function Home() {
 
         {error && <div className="notice error">{error}</div>}
         {copyNotice && <div className="copyNotice">{copyNotice}</div>}
-        <LoadingScreen language={selectedOutputLanguage} message={busyMessage} status={status} tip={loadingTip} topic={topic} />
+        <LoadingScreen language={selectedOutputLanguage} message={busyMessage} progress={loadingProgress} status={status} tip={loadingTip} topic={topic} />
         <div className="notice safetyNotice">
           <p>{text.safetyNotice}</p>
         </div>
