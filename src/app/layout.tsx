@@ -7,8 +7,8 @@ export const metadata: Metadata = {
   title: "AI Report Builder",
   description: "Bilingual report writing assistant for university students",
   icons: {
-    icon: "/app-icon.png",
-    apple: "/app-icon.png"
+    icon: "/app-icon.svg",
+    apple: "/app-icon.svg"
   }
 };
 

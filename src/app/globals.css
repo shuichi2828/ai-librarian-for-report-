@@ -74,9 +74,9 @@ button {
 .appGlyph {
   width: 64px;
   height: 64px;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 12px;
-  background: #fde8bd url("/app-icon.png") center / contain no-repeat;
+  background: url("/app-icon.svg") center / cover no-repeat;
 }
 
 .loginText {
