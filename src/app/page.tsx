@@ -156,7 +156,7 @@ const UI_TEXT = {
     loginNameLabel: "名前またはメールアドレス",
     loginNamePlaceholder: "",
     loginStart: "始める",
-    termsConsent: "利用規約、プライバシーポリシー、AI利用ガイド、PDF注意事項を確認し、大学や授業のAI利用ルールに従うことに同意します。",
+    termsConsent: "利用規約、プライバシーポリシーを確認し、大学や授業のAI利用ルールに従うことに同意します。",
     termsRequired: "始める前に規約と安全ガイドへの同意が必要です。",
     safetyNotice: "AIは下書き補助です。提出前に内容・引用・大学のルールを必ず自分で確認してください。",
     pdfUploadNotice: "権限のあるPDFだけをアップロードしてください。授業資料、有料論文、個人情報を含む資料は、利用許可を確認してから使ってください。",
@@ -268,7 +268,7 @@ const UI_TEXT = {
     loginNameLabel: "Name or email address",
     loginNamePlaceholder: "",
     loginStart: "Start",
-    termsConsent: "I have reviewed the Terms, Privacy Policy, AI guide, and PDF policy, and I agree to follow my university and course AI rules.",
+    termsConsent: "I have reviewed the Terms and Privacy Policy, and I agree to follow my university and course AI rules.",
     termsRequired: "You need to accept the terms and safety guide before starting.",
     safetyNotice: "AI only helps with drafting. Before submission, check the content, citations, and university rules yourself.",
     pdfUploadNotice: "Upload only PDFs you are allowed to use. Check permission before using course materials, paid papers, or files containing personal information.",
@@ -614,6 +614,9 @@ export default function Home() {
         ];
   const activeGuide = guideSteps.find((step) => step.id === activeStep) ?? guideSteps[0];
   const busyMessage = STATUS_MESSAGES[selectedOutputLanguage][status];
+  function legalHref(href: string) {
+    return selectedOutputLanguage === "en" && (href === "/terms" || href === "/privacy") ? `${href}?lang=en` : href;
+  }
   function lengthScore(value: string, usefulLength: number, strongLength: number) {
     const length = value.trim().length;
     if (length === 0) return 0;
@@ -1563,8 +1566,8 @@ export default function Home() {
               <span>{text.termsConsent}</span>
             </label>
             <nav className="legalLinks" aria-label="Legal links">
-              {legalLinks.slice(0, 4).map((link) => (
-                <a href={link.href} key={link.href}>{selectedOutputLanguage === "ja" ? link.labelJa : link.labelEn}</a>
+              {legalLinks.map((link) => (
+                <a href={legalHref(link.href)} key={link.href}>{selectedOutputLanguage === "ja" ? link.labelJa : link.labelEn}</a>
               ))}
             </nav>
             <button className="primaryButton" type="submit" disabled={!loginName.trim() || !termsAccepted}>
@@ -1644,7 +1647,7 @@ export default function Home() {
         </div>
         <nav className="legalLinks sidebarLegalLinks" aria-label="Legal links">
           {legalLinks.map((link) => (
-            <a href={link.href} key={link.href}>{selectedOutputLanguage === "ja" ? link.labelJa : link.labelEn}</a>
+            <a href={legalHref(link.href)} key={link.href}>{selectedOutputLanguage === "ja" ? link.labelJa : link.labelEn}</a>
           ))}
         </nav>
       </aside>

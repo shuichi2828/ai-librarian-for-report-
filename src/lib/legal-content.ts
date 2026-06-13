@@ -1,8 +1,6 @@
 export const legalLinks = [
   { href: "/terms", labelJa: "利用規約", labelEn: "Terms" },
   { href: "/privacy", labelJa: "プライバシーポリシー", labelEn: "Privacy" },
-  { href: "/ai-guide", labelJa: "AI利用ガイド", labelEn: "AI guide" },
-  { href: "/pdf-policy", labelJa: "PDF注意事項", labelEn: "PDF policy" },
   { href: "/roadmap", labelJa: "運営計画", labelEn: "Roadmap" }
 ] as const;
 
