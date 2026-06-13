@@ -134,6 +134,61 @@ const STATUS_MESSAGES: Record<"ja" | "en", Record<WorkflowStatus, string>> = {
     revision: "Creating a revised draft with the selected improvements."
   }
 };
+
+const LOADING_TIPS: Record<"ja" | "en", string[]> = {
+  ja: [
+    "追加質問に答えるほど、内容が具体的になります。",
+    "PDFを読み込むと、重要テーマが内容候補に反映されます。",
+    "レポートのイメージは、最初は曖昧でも大丈夫です。",
+    "参考文献は、本文で使う前に必ず原文を確認しましょう。",
+    "下書きは完成版ではなく、自分の言葉に直すための土台です。",
+    "授業で使ったキーワードを入れると、レポートらしさが上がります。",
+    "反対意見を少し入れると、説得力のあるレポートになります。",
+    "APA 7やChicagoは、授業の指定に合わせて選びましょう。",
+    "PDFや論文は、利用できる権限があるものだけ使いましょう。",
+    "プランが合わないときは、条件を追加して作り直すと改善しやすいです。"
+  ],
+  en: [
+    "The more you answer the follow-up questions, the more concrete your content becomes.",
+    "When you read a PDF, important themes are reflected in the content suggestions.",
+    "Your report idea can be vague at first.",
+    "Always check the original source before using a reference in your paper.",
+    "A draft is not the final version. Use it as a base to rewrite in your own words.",
+    "Adding keywords from class makes the report feel more connected to the course.",
+    "Including a small counterargument can make your report more persuasive.",
+    "Choose APA 7 or Chicago according to your course instructions.",
+    "Use only PDFs and papers you are allowed to use.",
+    "If a plan does not fit, add conditions and recreate it."
+  ]
+};
+
+const LOADING_TITLES: Record<"ja" | "en", Record<WorkflowStatus, string>> = {
+  ja: {
+    idle: "",
+    material: "材料をチェックしています",
+    points: "内容候補を整理しています",
+    pdf: "PDFを読み込んでいます",
+    plans: "プランを作成しています",
+    references: "参考文献を探しています",
+    outline: "構成案を作成しています",
+    draft: "下書きを作成しています",
+    personalization: "改善ポイントを確認しています",
+    revision: "改訂案を作成しています"
+  },
+  en: {
+    idle: "",
+    material: "Checking your material",
+    points: "Organizing content ideas",
+    pdf: "Reading the PDF",
+    plans: "Creating report plans",
+    references: "Finding references",
+    outline: "Creating an outline",
+    draft: "Writing a draft",
+    personalization: "Checking revision points",
+    revision: "Creating a revised draft"
+  }
+};
+
 const REPORT_PREFERENCES = [
   { id: "personal", label: { ja: "自分の経験を入れたい", en: "Include my experience" }, value: { ja: "個人の経験や意見を中心にする", en: "Center personal experience and opinion" } },
   { id: "paper", label: { ja: "論文をしっかり引用したい", en: "Use academic sources" }, value: { ja: "論文引用を重視する", en: "Prioritize academic citations" } },
@@ -532,6 +587,55 @@ function trackUsage(eventName: string, properties: Record<string, string | numbe
   }
 }
 
+function LoadingScreen({
+  language,
+  message,
+  status,
+  tip,
+  topic
+}: {
+  language: "ja" | "en";
+  message: string;
+  status: WorkflowStatus;
+  tip: string;
+  topic: string;
+}) {
+  if (status === "idle") return null;
+
+  const title = LOADING_TITLES[language][status] || message;
+  const loadingLabel = language === "ja" ? "ローディング中" : "Loading";
+  const topicLabel = language === "ja" ? "ユーザーのレポートテーマ" : "Report theme";
+  const fallbackTopic = language === "ja" ? "レポートテーマを整理中" : "Organizing report theme";
+
+  return (
+    <section className="loadingScreen" aria-live="polite" aria-label={loadingLabel}>
+      <div className="loadingCard">
+        <div className="loadingBrand">
+          <div className="appGlyph miniGlyph" aria-hidden="true" />
+          <span>{loadingLabel}</span>
+        </div>
+        <div className="loadingTopic">
+          <span>{topicLabel}</span>
+          <strong>{topic.trim() || fallbackTopic}</strong>
+        </div>
+        <div className="loadingProgressHeader">
+          <span>0%</span>
+          <b>{title}</b>
+          <span>100%</span>
+        </div>
+        <div className="loadingProgressBar" aria-hidden="true">
+          <span />
+        </div>
+        <p className="loadingMessage">{message}</p>
+        <div className="loadingTip">
+          <span>Tips</span>
+          <p>{tip}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const [user, setUser] = useState<GuestUser | null>(null);
   const [loginName, setLoginName] = useState("");
@@ -587,6 +691,7 @@ export default function Home() {
   const [error, setError] = useState<string>();
   const [copyNotice, setCopyNotice] = useState("");
   const [activeStep, setActiveStep] = useState<ActiveStep>(0);
+  const [loadingTipIndex, setLoadingTipIndex] = useState(0);
 
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedPlanId), [plans, selectedPlanId]);
   const busy = status !== "idle";
@@ -613,6 +718,8 @@ export default function Home() {
         ];
   const activeGuide = guideSteps.find((step) => step.id === activeStep) ?? guideSteps[0];
   const busyMessage = STATUS_MESSAGES[selectedOutputLanguage][status];
+  const loadingTips = LOADING_TIPS[selectedOutputLanguage];
+  const loadingTip = loadingTips[loadingTipIndex % loadingTips.length];
   function legalHref(href: string) {
     return selectedOutputLanguage === "en" && (href === "/terms" || href === "/privacy") ? `${href}?lang=en` : href;
   }
@@ -629,6 +736,20 @@ export default function Home() {
     { label: text.mustInclude, value: Math.max(lengthScore(details.mustInclude, 30, 160), Math.min(90, allPdfThemes().length * 15)) },
     { label: text.reportPreferences, value: Math.min(95, details.reportPreferences.length * 18 + lengthScore(details.materialNotes, 30, 180)) }
   ];
+
+  useEffect(() => {
+    if (status === "idle") {
+      setLoadingTipIndex(0);
+      return;
+    }
+
+    setLoadingTipIndex(0);
+    const intervalId = window.setInterval(() => {
+      setLoadingTipIndex((current) => (current + 1) % loadingTips.length);
+    }, 2800);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadingTips.length, selectedOutputLanguage, status]);
 
   useEffect(() => {
     const acceptedTerms = window.localStorage.getItem(TERMS_KEY) === "true";
@@ -1646,11 +1767,7 @@ export default function Home() {
 
         {error && <div className="notice error">{error}</div>}
         {copyNotice && <div className="copyNotice">{copyNotice}</div>}
-        {busyMessage && (
-          <div className="notice loadingNotice">
-            <p>{busyMessage}</p>
-          </div>
-        )}
+        <LoadingScreen language={selectedOutputLanguage} message={busyMessage} status={status} tip={loadingTip} topic={topic} />
         <div className="notice safetyNotice">
           <p>{text.safetyNotice}</p>
         </div>
