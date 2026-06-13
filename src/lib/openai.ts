@@ -274,7 +274,8 @@ export async function generateContentPoints(
   topic: string,
   details: AssignmentDetails,
   pdfThemes: PdfTheme[],
-  outputLanguage: "ja" | "en"
+  outputLanguage: "ja" | "en",
+  materialAnswers: InterviewAnswer[] = []
 ): Promise<ContentPoint[] | null> {
   const schema = {
     type: "object",
@@ -306,13 +307,15 @@ export async function generateContentPoints(
   const prompt = [
     "You are an academic librarian helping an undergraduate decide what content to include in a report.",
     "Return 8 to 12 selectable content points. They should be concrete enough to become sections, arguments, evidence, counterarguments, cases, or policy points.",
-    "Use the assignment prompt, student's tentative opinion, must-include points, report preferences, material notes, and PDF themes when available.",
+    "Use the assignment prompt, student's tentative opinion, must-include points, report preferences, material notes, PDF themes, and additional question answers when available.",
+    "Treat additional question answers as the newest clarification from the student. Turn them into stronger content points instead of asking the student to add them manually.",
     "Respect report preferences such as personal experience, paper citations, objective facts, course content, comparison, policy, and critical discussion.",
     "Include points that support the student's view and at least one point that complicates or challenges it.",
     languageInstruction(outputLanguage),
     `Research topic: ${topic}`,
     `Assignment details JSON: ${JSON.stringify(details)}`,
-    `PDF themes JSON: ${JSON.stringify(pdfThemes)}`
+    `PDF themes JSON: ${JSON.stringify(pdfThemes)}`,
+    `Additional question answers JSON: ${JSON.stringify(materialAnswers)}`
   ].join("\n");
 
   const result = await generateStructured<{ points: ContentPoint[] }>(prompt, schema);

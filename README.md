@@ -8,7 +8,7 @@ The app includes open guest login. Anyone can enter a name or email and start us
 
 - Guest login for public use.
 - Assignment/material intake for the prompt, the student's opinion, and must-include points.
-- Material Quality Check for strengthening vague inputs before planning. It scores material strength, asks quick follow-up questions, supports report preferences such as personal experience, paper citations, objective facts, and course content, and lets students add suggested material to the planning flow.
+- Material Quality Check for strengthening vague inputs before planning. It scores material strength, asks quick follow-up questions, supports report preferences such as personal experience, paper citations, objective facts, and course content, and uses follow-up answers when creating content suggestions.
 - AI-generated content suggestions that the user selects before report plans are created.
 - Flexible report-plan refinement. Students can ask for different plans, write what feels almost right, or select multiple plans to mix into a new set of options.
 - Optional PDF upload. The app summarizes the PDF and extracts themes that can be selected and folded into report plans.
@@ -22,7 +22,7 @@ The app includes open guest login. Anyone can enter a name or email and start us
 - Personalization check after draft generation. The app suggests selectable revision points, lets the user add "Others" in free text, and creates a revised draft focused on the student's own argument, course context, examples, and evidence use.
 - Vercel Analytics for page views and privacy-conscious feature events. Events track counts and settings only, not student names, topic text, PDF text, or paper titles.
 - First-use consent for the Terms, Privacy Policy, AI usage guide, and PDF upload policy.
-- Legal and safety pages for terms, privacy, AI/plagiarism guidance, PDF upload rules, and the six-month roadmap.
+- Legal and safety pages for terms, privacy, AI/plagiarism guidance, and PDF upload rules.
 
 ## Run
 

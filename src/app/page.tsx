@@ -548,7 +548,6 @@ export default function Home() {
   const [customPreference, setCustomPreference] = useState("");
   const [materialCheck, setMaterialCheck] = useState<MaterialQualityCheck | null>(null);
   const [materialQuestionAnswers, setMaterialQuestionAnswers] = useState<Record<string, string>>({});
-  const [selectedMaterialSuggestionIds, setSelectedMaterialSuggestionIds] = useState<string[]>([]);
   const [pdfFiles, setPdfFiles] = useState<File[]>([]);
   const [forcePdfOcr, setForcePdfOcr] = useState(false);
   const [pdfMode, setPdfMode] = useState<"text" | "openai-ocr" | "mixed">();
@@ -710,7 +709,6 @@ export default function Home() {
   function clearMaterialCheck() {
     setMaterialCheck(null);
     setMaterialQuestionAnswers({});
-    setSelectedMaterialSuggestionIds([]);
   }
 
   function copyToClipboard(text: string, message: string) {
@@ -805,7 +803,24 @@ export default function Home() {
       });
     }
 
-    return answers;
+    return [...answers, ...materialAnswerEntries()];
+  }
+
+  function materialAnswerEntries(): InterviewAnswer[] {
+    if (!materialCheck) return [];
+
+    return materialCheck.questions
+      .map((question) => {
+        const answer = materialQuestionAnswers[question.id]?.trim();
+        return answer
+          ? {
+              questionId: `material-${question.id}`,
+              question: question.label,
+              answer
+            }
+          : null;
+      })
+      .filter((item): item is InterviewAnswer => Boolean(item));
   }
 
   async function suggestContentPoints() {
@@ -828,7 +843,13 @@ export default function Home() {
       const response = await fetch("/api/content-points", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, outputLanguage: selectedOutputLanguage, details, pdfThemes: allPdfThemes() })
+        body: JSON.stringify({
+          topic,
+          outputLanguage: selectedOutputLanguage,
+          details,
+          pdfThemes: allPdfThemes(),
+          materialAnswers: materialAnswerEntries()
+        })
       });
 
       if (!response.ok) throw new Error("points");
@@ -883,7 +904,6 @@ export default function Home() {
 
       const result = (await response.json()) as MaterialQualityResponse;
       setMaterialCheck(result.check);
-      setSelectedMaterialSuggestionIds(result.check.suggestions.slice(0, 3).map((suggestion) => suggestion.id));
       trackUsage("material_checked", {
         outputLanguage,
         score: result.check.score,
@@ -1428,15 +1448,26 @@ export default function Home() {
     clearMaterialCheck();
   }
 
-  function toggleMaterialSuggestion(suggestionId: string) {
-    setSelectedMaterialSuggestionIds((current) => (current.includes(suggestionId) ? current.filter((id) => id !== suggestionId) : [...current, suggestionId]));
-  }
-
   function updateMaterialAnswer(questionId: string, answer: string) {
     setMaterialQuestionAnswers((current) => ({
       ...current,
       [questionId]: answer
     }));
+  }
+
+  function toggleMaterialChoiceAnswer(questionId: string, option: string) {
+    setMaterialQuestionAnswers((current) => {
+      const values = (current[questionId] ?? "")
+        .split("\n")
+        .map((value) => value.trim())
+        .filter(Boolean);
+      const nextValues = values.includes(option) ? values.filter((value) => value !== option) : [...values, option];
+
+      return {
+        ...current,
+        [questionId]: nextValues.join("\n")
+      };
+    });
   }
 
   function addCustomPreference() {
@@ -1449,58 +1480,6 @@ export default function Home() {
     }));
     setCustomPreference("");
     clearMaterialCheck();
-  }
-
-  function applyMaterialEnhancements() {
-    if (!materialCheck) return;
-
-    const selectedSuggestions = materialCheck.suggestions.filter((suggestion) => selectedMaterialSuggestionIds.includes(suggestion.id));
-    const answerLines = materialCheck.questions
-      .map((question) => {
-        const answer = materialQuestionAnswers[question.id]?.trim();
-        return answer ? `${question.label}: ${answer}` : "";
-      })
-      .filter(Boolean);
-
-    const suggestionPoints = selectedSuggestions.map<ContentPoint>((suggestion) => ({
-      id: `material-${suggestion.id}-${Date.now()}`,
-      title: suggestion.title,
-      description: suggestion.description,
-      type: "custom",
-      keywordsJa: suggestion.keywordsJa,
-      keywordsEn: suggestion.keywordsEn,
-      source: "ai"
-    }));
-
-    const answerPoints = answerLines.map<ContentPoint>((line, index) => ({
-      id: `material-answer-${Date.now()}-${index}`,
-      title: selectedOutputLanguage === "ja" ? `追加した材料 ${index + 1}` : `Added material ${index + 1}`,
-      description: line,
-      type: "custom",
-      keywordsJa: [topic, line],
-      keywordsEn: [topic, line],
-      source: "user"
-    }));
-
-    const newPoints = [...suggestionPoints, ...answerPoints];
-    if (newPoints.length > 0) {
-      setContentPoints((current) => [...current, ...newPoints]);
-      setSelectedContentPointIds((current) => [...current, ...newPoints.map((point) => point.id)]);
-    }
-
-    if (answerLines.length > 0 || selectedSuggestions.length > 0) {
-      const notes = [...answerLines, ...selectedSuggestions.map((suggestion) => `${suggestion.title}: ${suggestion.description}`)].join("\n");
-      setDetails((current) => ({
-        ...current,
-        materialNotes: [current.materialNotes, notes].filter(Boolean).join("\n")
-      }));
-    }
-
-    trackUsage("material_enhancements_added", {
-      selectedSuggestionCount: selectedSuggestions.length,
-      answeredQuestionCount: answerLines.length,
-      preferenceCount: details.reportPreferences.length
-    });
   }
 
   function toggleReference(referenceId: string) {
@@ -1651,7 +1630,7 @@ export default function Home() {
           {activeStep > 0 && (
             <button className="secondaryButton compact" type="button" onClick={() => setActiveStep((Math.max(0, activeStep - 1) as ActiveStep))}>
               <ArrowLeft size={17} />
-              {selectedOutputLanguage === "ja" ? "前のStep" : "Previous"}
+              {selectedOutputLanguage === "ja" ? "前のステップへ" : "Previous step"}
             </button>
           )}
         </div>
@@ -1666,6 +1645,7 @@ export default function Home() {
         </nav>
 
         {error && <div className="notice error">{error}</div>}
+        {copyNotice && <div className="copyNotice">{copyNotice}</div>}
         {busyMessage && (
           <div className="notice loadingNotice">
             <p>{busyMessage}</p>
@@ -1749,9 +1729,6 @@ export default function Home() {
           <div className="sectionHeader">
             <FileText size={18} />
             <h2>{text.pdfSection}</h2>
-          </div>
-          <div className="notice safetyNotice">
-            <p>{text.pdfUploadNotice}</p>
           </div>
           <div className="pdfControls">
             <input
@@ -1871,22 +1848,25 @@ export default function Home() {
             {materialCheck && (
               <div className="materialQuestionList">
                 {materialCheck.questions.map((question) => (
-                  <label className="materialQuestion" key={question.id}>
+                  <div className="materialQuestion" key={question.id}>
                     <span>{question.label}</span>
                     <small>{question.helpText}</small>
                     {question.type === "choice" ? (
-                      <select value={materialQuestionAnswers[question.id] ?? ""} onChange={(event) => updateMaterialAnswer(question.id, event.target.value)}>
-                        <option value="">{text.chooseOption}</option>
-                        {question.options.map((option) => (
-                          <option value={option} key={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="choiceChipGrid">
+                        {question.options.map((option) => {
+                          const checked = (materialQuestionAnswers[question.id] ?? "").split("\n").includes(option);
+                          return (
+                            <label className={checked ? "choiceChip selected" : "choiceChip"} key={option}>
+                              <input type="checkbox" checked={checked} onChange={() => toggleMaterialChoiceAnswer(question.id, option)} />
+                              <span>{option}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     ) : (
                       <textarea value={materialQuestionAnswers[question.id] ?? ""} onChange={(event) => updateMaterialAnswer(question.id, event.target.value)} rows={2} />
                     )}
-                  </label>
+                  </div>
                 ))}
               </div>
             )}
@@ -1895,19 +1875,19 @@ export default function Home() {
                 <h3>{text.additionalMaterial}</h3>
                 <div className="themeGrid">
                   {materialCheck.suggestions.map((suggestion) => (
-                    <label className={selectedMaterialSuggestionIds.includes(suggestion.id) ? "selectCard selected" : "selectCard"} key={suggestion.id}>
-                      <input type="checkbox" checked={selectedMaterialSuggestionIds.includes(suggestion.id)} onChange={() => toggleMaterialSuggestion(suggestion.id)} />
+                    <article className="selectCard suggestionOnly" key={suggestion.id}>
                       <span>{suggestion.title}</span>
                       <small>{suggestion.description}</small>
                       <em>{suggestion.preferenceFit}</em>
-                    </label>
+                    </article>
                   ))}
                 </div>
-                <button className="secondaryButton" type="button" onClick={applyMaterialEnhancements}>
-                  {text.addSelectedMaterial}
-                </button>
               </div>
             )}
+            <button className="primaryButton" type="button" onClick={suggestContentAndContinue} disabled={busy || !topic.trim()}>
+              {status === "points" ? <Loader2 size={18} className="spin" /> : <MessageSquareText size={18} />}
+              {text.createContent}
+            </button>
           </section>
           )}
 
@@ -1939,12 +1919,8 @@ export default function Home() {
                 {text.add}
               </button>
             </div>
-            <button className="primaryButton" type="button" onClick={suggestContentAndContinue} disabled={busy || !topic.trim()}>
-              {status === "points" ? <Loader2 size={18} className="spin" /> : <MessageSquareText size={18} />}
-              {text.createContent}
-            </button>
             {contentPoints.length > 0 && (
-              <button className="secondaryButton" type="button" onClick={createPlansAndContinue} disabled={busy}>
+              <button className="primaryButton" type="button" onClick={createPlansAndContinue} disabled={busy}>
                 {status === "plans" ? <Loader2 size={18} className="spin" /> : <BookOpen size={18} />}
                 {text.createPlan}
               </button>
@@ -2054,8 +2030,6 @@ export default function Home() {
           <div className="notice safetyNotice">
             <p>{text.citationSafetyNotice}</p>
           </div>
-          {copyNotice && <div className="copyNotice">{copyNotice}</div>}
-
           {status === "references" && (
             <div className="loadingBlock">
               <Loader2 size={24} className="spin" />
@@ -2388,6 +2362,7 @@ export default function Home() {
                           wordCountEstimate: reportDraft.wordCountEstimate
                         });
                         setCopyNotice(text.draftFeedbackThanks);
+                        window.setTimeout(() => setCopyNotice(""), 1800);
                       }}
                     >
                       {text.draftFeedbackGood}
@@ -2404,6 +2379,7 @@ export default function Home() {
                           wordCountEstimate: reportDraft.wordCountEstimate
                         });
                         setCopyNotice(text.draftFeedbackThanks);
+                        window.setTimeout(() => setCopyNotice(""), 1800);
                       }}
                     >
                       {text.draftFeedbackNeedsWork}

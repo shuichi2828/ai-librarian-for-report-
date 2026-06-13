@@ -1,7 +1,6 @@
 export const legalLinks = [
   { href: "/terms", labelJa: "利用規約", labelEn: "Terms" },
   { href: "/privacy", labelJa: "プライバシーポリシー", labelEn: "Privacy" },
-  { href: "/roadmap", labelJa: "運営計画", labelEn: "Roadmap" }
 ] as const;
 
 export const legalUpdatedAt = "2026-06-13";

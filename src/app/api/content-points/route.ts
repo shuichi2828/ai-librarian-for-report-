@@ -15,6 +15,12 @@ const pdfThemeSchema = z.object({
   evidence: z.string()
 });
 
+const materialAnswerSchema = z.object({
+  questionId: z.string(),
+  question: z.string(),
+  answer: z.string()
+});
+
 const requestSchema = z.object({
   topic: z.string().trim().min(2).max(300),
   outputLanguage: z.enum(["ja", "en", "auto"]).default("ja"),
@@ -25,7 +31,8 @@ const requestSchema = z.object({
     reportPreferences: z.array(z.string()).default([]),
     materialNotes: z.string().default("")
   }),
-  pdfThemes: z.array(pdfThemeSchema).default([])
+  pdfThemes: z.array(pdfThemeSchema).default([]),
+  materialAnswers: z.array(materialAnswerSchema).default([])
 });
 
 export async function POST(request: Request) {
@@ -39,12 +46,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid content suggestion request." }, { status: 400 });
   }
 
-  const { topic, outputLanguage, details, pdfThemes } = parsed.data;
-  const language = resolveOutputLanguage([topic, details.assignmentPrompt, details.userOpinion, details.mustInclude, details.materialNotes, ...details.reportPreferences].join(" "), outputLanguage);
-  const generated = await generateContentPoints(topic, details, pdfThemes, language);
+  const { topic, outputLanguage, details, pdfThemes, materialAnswers } = parsed.data;
+  const language = resolveOutputLanguage(
+    [topic, details.assignmentPrompt, details.userOpinion, details.mustInclude, details.materialNotes, ...details.reportPreferences, ...materialAnswers.map((item) => item.answer)].join(" "),
+    outputLanguage
+  );
+  const generated = await generateContentPoints(topic, details, pdfThemes, language, materialAnswers);
 
   return NextResponse.json({
-    points: generated?.length ? generated : fallbackContentPoints(topic, details, pdfThemes, language),
+    points: generated?.length ? generated : fallbackContentPoints(topic, details, pdfThemes, language, materialAnswers),
     outputLanguage: language,
     usedFallback: !generated
   });

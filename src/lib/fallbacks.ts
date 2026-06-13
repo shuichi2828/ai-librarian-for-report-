@@ -74,7 +74,13 @@ export function fallbackLibrarianQuestions(topic: string, outputLanguage: "ja" |
   ];
 }
 
-export function fallbackContentPoints(topic: string, details: AssignmentDetails, pdfThemes: PdfTheme[], outputLanguage: "ja" | "en"): ContentPoint[] {
+export function fallbackContentPoints(
+  topic: string,
+  details: AssignmentDetails,
+  pdfThemes: PdfTheme[],
+  outputLanguage: "ja" | "en",
+  materialAnswers: InterviewAnswer[] = []
+): ContentPoint[] {
   const ja = isJa(outputLanguage);
   const base: ContentPoint[] = [
     {
@@ -159,7 +165,17 @@ export function fallbackContentPoints(topic: string, details: AssignmentDetails,
     source: "pdf"
   }));
 
-  return [...base, ...mustInclude, ...preferencePoints, ...pdfPoints].slice(0, 12);
+  const answerPoints = materialAnswers.slice(0, 5).map<ContentPoint>((item, index) => ({
+    id: `point-answer-${index + 1}`,
+    title: item.question,
+    description: item.answer,
+    type: "custom",
+    keywordsJa: [topic, item.answer],
+    keywordsEn: [topic, item.answer],
+    source: "user"
+  }));
+
+  return [...base, ...mustInclude, ...answerPoints, ...preferencePoints, ...pdfPoints].slice(0, 12);
 }
 
 export function fallbackMaterialQualityCheck(topic: string, details: AssignmentDetails, outputLanguage: "ja" | "en", pdfThemes: PdfTheme[] = []): MaterialQualityCheck {

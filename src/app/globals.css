@@ -75,7 +75,7 @@ button {
   width: 64px;
   height: 64px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: url("/app-icon.svg") center / cover no-repeat;
 }
 
@@ -845,6 +845,38 @@ h1 {
   color: var(--muted);
 }
 
+.choiceChipGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.choiceChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fdfaf2;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 11px;
+}
+
+.choiceChip.selected {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.choiceChip input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--teal);
+}
+
 .materialSuggestionArea {
   border-top: 1px solid var(--line);
   margin-top: 14px;
@@ -982,6 +1014,15 @@ h1 {
   font-style: normal;
   color: var(--moss);
   font-size: 12px;
+}
+
+.selectCard.suggestionOnly {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.selectCard.suggestionOnly small,
+.selectCard.suggestionOnly em {
+  grid-column: 1;
 }
 
 .angleCard {
