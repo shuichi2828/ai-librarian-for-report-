@@ -1646,6 +1646,55 @@ code {
   padding: 14px;
 }
 
+.referencePageSummary {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fdfaf2;
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.referencePageSummary h4 {
+  margin: 0 0 6px;
+}
+
+.referencePageSummary p {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.referencePageSummary ul {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.referencePageSummary li {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.referencePageSummary strong {
+  overflow-wrap: anywhere;
+}
+
+.referencePageSummary span {
+  color: var(--moss);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.referencePageSummary code {
+  width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .draftResult h4 {
   margin: 14px 0 8px;
 }
