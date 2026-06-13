@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { track } from "@vercel/analytics";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { legalLinks } from "@/lib/legal-content";
 import type {
   AssignmentDetails,
   CitationStyle,
@@ -102,9 +103,37 @@ type GuestUser = {
 };
 
 type ActiveStep = 0 | 1 | 2 | 3 | 4 | 5;
+type WorkflowStatus = "idle" | "material" | "points" | "pdf" | "plans" | "references" | "outline" | "draft" | "personalization" | "revision";
 
 const HISTORY_KEY = "ai-librarian-history-v3";
 const USER_KEY = "ai-librarian-user-v1";
+const TERMS_KEY = "ai-librarian-terms-v1";
+const STATUS_MESSAGES: Record<"ja" | "en", Record<WorkflowStatus, string>> = {
+  ja: {
+    idle: "",
+    material: "材料の具体性と不足点を確認しています。",
+    points: "レポートに入れる内容候補を整理しています。",
+    pdf: "PDFを読み取り、重要テーマを抽出しています。",
+    plans: "選んだ内容からレポートプランを作成しています。",
+    references: "学術データベースから参考文献候補を確認しています。",
+    outline: "選んだ材料から構成案を作成しています。",
+    draft: "構成案と材料をもとに下書きを作成しています。",
+    personalization: "下書きを自分らしく直すポイントを確認しています。",
+    revision: "選んだ改善点を反映した改訂版を作成しています。"
+  },
+  en: {
+    idle: "",
+    material: "Checking how concrete the material is and what is missing.",
+    points: "Organizing candidate content points for the report.",
+    pdf: "Reading the PDF and extracting important themes.",
+    plans: "Creating report plans from the selected content.",
+    references: "Checking academic databases for reference candidates.",
+    outline: "Creating an outline from the selected material.",
+    draft: "Writing a draft from the outline and selected material.",
+    personalization: "Checking how to revise the draft in your own voice.",
+    revision: "Creating a revised draft with the selected improvements."
+  }
+};
 const REPORT_PREFERENCES = [
   { id: "personal", label: { ja: "自分の経験を入れたい", en: "Include my experience" }, value: { ja: "個人の経験や意見を中心にする", en: "Center personal experience and opinion" } },
   { id: "paper", label: { ja: "論文をしっかり引用したい", en: "Use academic sources" }, value: { ja: "論文引用を重視する", en: "Prioritize academic citations" } },
@@ -127,6 +156,12 @@ const UI_TEXT = {
     loginNameLabel: "名前またはメールアドレス",
     loginNamePlaceholder: "",
     loginStart: "始める",
+    termsConsent: "利用規約、プライバシーポリシー、AI利用ガイド、PDF注意事項を確認し、大学や授業のAI利用ルールに従うことに同意します。",
+    termsRequired: "始める前に規約と安全ガイドへの同意が必要です。",
+    safetyNotice: "AIは下書き補助です。提出前に内容・引用・大学のルールを必ず自分で確認してください。",
+    pdfUploadNotice: "権限のあるPDFだけをアップロードしてください。授業資料、有料論文、個人情報を含む資料は、利用許可を確認してから使ってください。",
+    draftSafetyNotice: "下書きはそのまま提出せず、自分の言葉で修正し、引用・ページ番号・参考文献を確認してください。",
+    citationSafetyNotice: "引用形式は補助表示です。提出前に授業指定の形式と原文のページ番号を確認してください。",
     history: "履歴",
     clearHistory: "履歴を削除",
     emptyHistory: "保存したレポートプランがここに表示されます。",
@@ -216,6 +251,11 @@ const UI_TEXT = {
     relevance: "関連度",
     useThisPaper: "この論文を使う",
     openPaper: "論文ページを開く"
+    ,
+    draftFeedbackQuestion: "この下書きは役に立ちましたか？",
+    draftFeedbackGood: "役に立った",
+    draftFeedbackNeedsWork: "改善が必要",
+    draftFeedbackThanks: "フィードバックを記録しました"
   },
   en: {
     languageJa: "Japanese",
@@ -228,6 +268,12 @@ const UI_TEXT = {
     loginNameLabel: "Name or email address",
     loginNamePlaceholder: "",
     loginStart: "Start",
+    termsConsent: "I have reviewed the Terms, Privacy Policy, AI guide, and PDF policy, and I agree to follow my university and course AI rules.",
+    termsRequired: "You need to accept the terms and safety guide before starting.",
+    safetyNotice: "AI only helps with drafting. Before submission, check the content, citations, and university rules yourself.",
+    pdfUploadNotice: "Upload only PDFs you are allowed to use. Check permission before using course materials, paid papers, or files containing personal information.",
+    draftSafetyNotice: "Do not submit the draft as-is. Revise it in your own words and check citations, page numbers, and references.",
+    citationSafetyNotice: "Citation styles are assistive. Before submission, verify the required course style and original page numbers.",
     history: "History",
     clearHistory: "Clear history",
     emptyHistory: "Saved report plans will appear here.",
@@ -317,6 +363,11 @@ const UI_TEXT = {
     relevance: "Relevance",
     useThisPaper: "Use this paper",
     openPaper: "Open paper page"
+    ,
+    draftFeedbackQuestion: "Was this draft useful?",
+    draftFeedbackGood: "Useful",
+    draftFeedbackNeedsWork: "Needs work",
+    draftFeedbackThanks: "Feedback recorded"
   }
 } as const;
 
@@ -484,6 +535,7 @@ function trackUsage(eventName: string, properties: Record<string, string | numbe
 export default function Home() {
   const [user, setUser] = useState<GuestUser | null>(null);
   const [loginName, setLoginName] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [topic, setTopic] = useState("Generative AI and university education");
   const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>("ja");
   const [details, setDetails] = useState<AssignmentDetails>({
@@ -532,7 +584,7 @@ export default function Home() {
   const [refinements, setRefinements] = useState<string[]>([]);
   const [totalReviewed, setTotalReviewed] = useState<number>();
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [status, setStatus] = useState<"idle" | "material" | "points" | "pdf" | "plans" | "references" | "outline" | "draft" | "personalization" | "revision">("idle");
+  const [status, setStatus] = useState<WorkflowStatus>("idle");
   const [error, setError] = useState<string>();
   const [copyNotice, setCopyNotice] = useState("");
   const [activeStep, setActiveStep] = useState<ActiveStep>(0);
@@ -561,6 +613,7 @@ export default function Home() {
           { id: 5 as const, eyebrow: "Step 5", title: "Create a draft", short: "Draft", done: Boolean(reportOutline || reportDraft) }
         ];
   const activeGuide = guideSteps.find((step) => step.id === activeStep) ?? guideSteps[0];
+  const busyMessage = STATUS_MESSAGES[selectedOutputLanguage][status];
   function lengthScore(value: string, usefulLength: number, strongLength: number) {
     const length = value.trim().length;
     if (length === 0) return 0;
@@ -576,11 +629,15 @@ export default function Home() {
   ];
 
   useEffect(() => {
+    const acceptedTerms = window.localStorage.getItem(TERMS_KEY) === "true";
+    setTermsAccepted(acceptedTerms);
     const savedUser = window.localStorage.getItem(USER_KEY);
     if (savedUser) {
       const parsedUser = JSON.parse(savedUser) as GuestUser;
-      setUser(parsedUser);
       setLoginName(parsedUser.name);
+      if (acceptedTerms) {
+        setUser(parsedUser);
+      }
     }
 
   }, []);
@@ -604,6 +661,10 @@ export default function Home() {
     event.preventDefault();
     const name = loginName.trim();
     if (!name) return;
+    if (!termsAccepted) {
+      setError(text.termsRequired);
+      return;
+    }
 
     const nextUser = {
       id: name.toLowerCase().replace(/[^\p{L}\p{N}@._-]+/gu, "-").slice(0, 80),
@@ -611,7 +672,9 @@ export default function Home() {
     };
     setUser(nextUser);
     window.localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+    window.localStorage.setItem(TERMS_KEY, "true");
     trackUsage("guest_login", { hasAtSign: name.includes("@") });
+    trackUsage("terms_accepted", { version: TERMS_KEY });
   }
 
   function logout() {
@@ -818,7 +881,7 @@ export default function Home() {
       const result = (await response.json()) as MaterialQualityResponse;
       setMaterialCheck(result.check);
       setSelectedMaterialSuggestionIds(result.check.suggestions.slice(0, 3).map((suggestion) => suggestion.id));
-      trackUsage("material_quality_checked", {
+      trackUsage("material_checked", {
         outputLanguage,
         score: result.check.score,
         weaknessCount: result.check.weaknesses.length,
@@ -891,7 +954,7 @@ export default function Home() {
       if (mode !== "initial") {
         setPlanRevisionCount((current) => current + 1);
       }
-      trackUsage("report_plans_created", {
+      trackUsage("plan_created", {
         outputLanguage,
         contentPointCount: selectedContentPoints().length,
         pdfThemeCount: selectedPdfThemes().length,
@@ -942,7 +1005,7 @@ export default function Home() {
       setAlternatives(result.alternativeKeywords);
       setRefinements(result.refinementSuggestions);
       setTotalReviewed(result.totalCandidatesReviewed);
-      trackUsage("papers_found", {
+      trackUsage("references_found", {
         outputLanguage,
         referenceCount: result.references.length,
         selectedReferenceCount: Math.min(4, result.references.length),
@@ -1094,6 +1157,12 @@ export default function Home() {
       });
     } catch (pdfError) {
       const message = pdfError instanceof Error ? pdfError.message : "PDFを読み込めませんでした。";
+      trackUsage("pdf_read_failed", {
+        outputLanguage: selectedOutputLanguage,
+        fileCount: pdfFiles.length,
+        forceOcr: forcePdfOcr,
+        additionalRead: avoidThemes.length > 0
+      });
       setError(`${message} PDFを3件以内にする、容量を15MB以内にする、またはOCRモードも試してください。`);
     } finally {
       setStatus("idle");
@@ -1485,14 +1554,25 @@ export default function Home() {
             ))}
           </div>
           <p className="loginText">{text.loginIntro}</p>
+          {error && <div className="notice error">{error}</div>}
           <form className="loginForm" onSubmit={login}>
             <label htmlFor="loginName">{text.loginNameHelp}</label>
             <input id="loginName" value={loginName} onChange={(event) => setLoginName(event.target.value)} autoComplete="email" aria-label={text.loginNameLabel} />
-            <button className="primaryButton" type="submit">
+            <label className="termsConsent">
+              <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} />
+              <span>{text.termsConsent}</span>
+            </label>
+            <nav className="legalLinks" aria-label="Legal links">
+              {legalLinks.slice(0, 4).map((link) => (
+                <a href={link.href} key={link.href}>{selectedOutputLanguage === "ja" ? link.labelJa : link.labelEn}</a>
+              ))}
+            </nav>
+            <button className="primaryButton" type="submit" disabled={!loginName.trim() || !termsAccepted}>
               <UserRound size={18} />
               {text.loginStart}
             </button>
           </form>
+          <p className="safetyText">{text.safetyNotice}</p>
         </section>
       </main>
     );
@@ -1562,6 +1642,11 @@ export default function Home() {
             ))
           )}
         </div>
+        <nav className="legalLinks sidebarLegalLinks" aria-label="Legal links">
+          {legalLinks.map((link) => (
+            <a href={link.href} key={link.href}>{selectedOutputLanguage === "ja" ? link.labelJa : link.labelEn}</a>
+          ))}
+        </nav>
       </aside>
 
       <section className="workspace">
@@ -1588,6 +1673,14 @@ export default function Home() {
         </nav>
 
         {error && <div className="notice error">{error}</div>}
+        {busyMessage && (
+          <div className="notice loadingNotice">
+            <p>{busyMessage}</p>
+          </div>
+        )}
+        <div className="notice safetyNotice">
+          <p>{text.safetyNotice}</p>
+        </div>
 
         {activeStep === 0 && (
           <section className="topicHero" aria-label={selectedOutputLanguage === "ja" ? "レポートテーマ入力" : "Report theme input"}>
@@ -1663,6 +1756,9 @@ export default function Home() {
           <div className="sectionHeader">
             <FileText size={18} />
             <h2>{text.pdfSection}</h2>
+          </div>
+          <div className="notice safetyNotice">
+            <p>{text.pdfUploadNotice}</p>
           </div>
           <div className="pdfControls">
             <input
@@ -1962,6 +2058,9 @@ export default function Home() {
               <option value="chicago">Chicago</option>
             </select>
           </div>
+          <div className="notice safetyNotice">
+            <p>{text.citationSafetyNotice}</p>
+          </div>
           {copyNotice && <div className="copyNotice">{copyNotice}</div>}
 
           {status === "references" && (
@@ -2155,6 +2254,9 @@ export default function Home() {
               {status === "outline" ? <Loader2 size={18} className="spin" /> : <CheckCircle2 size={18} />}
               構成案を作る
             </button>
+            <div className="notice safetyNotice">
+              <p>{text.draftSafetyNotice}</p>
+            </div>
             <div className="materialCheckBox">
               <div>
                 <strong>{text.citationFormat}</strong>
@@ -2278,6 +2380,41 @@ export default function Home() {
                     {reportDraft.notes.map((note) => (
                       <p key={note}>{note}</p>
                     ))}
+                  </div>
+                  <div className="feedbackBox">
+                    <span>{text.draftFeedbackQuestion}</span>
+                    <button
+                      className="secondaryButton compact"
+                      type="button"
+                      onClick={() => {
+                        trackUsage("draft_feedback_submitted", {
+                          rating: "good",
+                          outputLanguage: selectedOutputLanguage,
+                          hasReferences: selectedReferenceIds.length > 0,
+                          hasPdfThemes: selectedPdfThemes().length > 0,
+                          wordCountEstimate: reportDraft.wordCountEstimate
+                        });
+                        setCopyNotice(text.draftFeedbackThanks);
+                      }}
+                    >
+                      {text.draftFeedbackGood}
+                    </button>
+                    <button
+                      className="secondaryButton compact"
+                      type="button"
+                      onClick={() => {
+                        trackUsage("draft_feedback_submitted", {
+                          rating: "needs_work",
+                          outputLanguage: selectedOutputLanguage,
+                          hasReferences: selectedReferenceIds.length > 0,
+                          hasPdfThemes: selectedPdfThemes().length > 0,
+                          wordCountEstimate: reportDraft.wordCountEstimate
+                        });
+                        setCopyNotice(text.draftFeedbackThanks);
+                      }}
+                    >
+                      {text.draftFeedbackNeedsWork}
+                    </button>
                   </div>
                   <h4>参考文献</h4>
                   {reportDraft.bibliography.map((item) => (

@@ -21,6 +21,8 @@ The app includes open guest login. Anyone can enter a name or email and start us
 - Draft writing style control with Standard and Academic modes.
 - Personalization check after draft generation. The app suggests selectable revision points, lets the user add "Others" in free text, and creates a revised draft focused on the student's own argument, course context, examples, and evidence use.
 - Vercel Analytics for page views and privacy-conscious feature events. Events track counts and settings only, not student names, topic text, PDF text, or paper titles.
+- First-use consent for the Terms, Privacy Policy, AI usage guide, and PDF upload policy.
+- Legal and safety pages for terms, privacy, AI/plagiarism guidance, PDF upload rules, and the six-month roadmap.
 
 ## Run
 
@@ -54,12 +56,16 @@ Never expose `OPENAI_API_KEY` in browser code. This app keeps OpenAI and academi
 Tracked custom events:
 
 - `guest_login`
+- `terms_accepted`
+- `material_checked`
 - `content_points_created`
 - `pdf_read`
-- `report_plans_created`
-- `papers_found`
+- `pdf_read_failed`
+- `plan_created`
+- `references_found`
 - `outline_created`
 - `draft_created`
+- `draft_feedback_submitted`
 - `personalization_checked`
 - `revision_created`
 
