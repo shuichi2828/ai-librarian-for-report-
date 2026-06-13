@@ -1541,12 +1541,7 @@ export default function Home() {
     return (
       <main className="loginShell">
         <section className="loginPanel" aria-labelledby="loginTitle">
-          <div className="appGlyph" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
-          <p className="eyebrow">AI Librarian</p>
+          <div className="appGlyph" aria-hidden="true" />
           <h1 id="loginTitle">{text.loginTitle}</h1>
           <div className="languageControl loginLanguage" aria-label={selectedOutputLanguage === "ja" ? "表示言語" : "Display language"}>
             <Languages size={18} />
@@ -1585,13 +1580,8 @@ export default function Home() {
     <main className="shell">
       <aside className="historyPane" aria-label={text.history}>
         <div className="paneHeader">
-          <div className="appGlyph miniGlyph" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
+          <div className="appGlyph miniGlyph" aria-hidden="true" />
           <div>
-            <p className="eyebrow">AI Librarian</p>
             <h1>AI Report Builder</h1>
           </div>
         </div>

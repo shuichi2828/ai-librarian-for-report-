@@ -4,8 +4,12 @@ import { AnalyticsHealthCheck } from "@/components/analytics-health-check";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Librarian",
-  description: "Bilingual academic reference finder for university reports"
+  title: "AI Report Builder",
+  description: "Bilingual report writing assistant for university students",
+  icons: {
+    icon: "/app-icon.png",
+    apple: "/app-icon.png"
+  }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
