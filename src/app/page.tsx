@@ -532,29 +532,30 @@ function copyReferenceSummary(reference: ReferenceItem, uiLanguage: "ja" | "en",
     .join("\n");
 }
 
-type ReferencePageSummaryEntry = {
+type EvidenceUsageEntry = {
   id: string;
   title: string;
-  pageNumber: string;
-  inTextCitation: string;
+  location: string;
+  detail: string;
+  citation?: string;
 };
 
-function ReferencePageSummary({ entries, uiLanguage }: { entries: ReferencePageSummaryEntry[]; uiLanguage: "ja" | "en" }) {
+function EvidenceUsageSummary({ entries, uiLanguage }: { entries: EvidenceUsageEntry[]; uiLanguage: "ja" | "en" }) {
   if (entries.length === 0) return null;
 
   const text =
     uiLanguage === "ja"
       ? {
-          title: "使用した論文と引用ページ",
-          page: "引用ページ",
-          missing: "ページ未入力",
-          hint: "構成・下書きで使う論文と、確認したページをここに残します。"
+          title: "AIが使った根拠と記載箇所",
+          location: "記載箇所",
+          detail: "使った内容",
+          hint: "構成・下書きでAIが参照した論文・PDF材料と、その根拠の所在を表示します。"
         }
       : {
-          title: "Sources and Cited Pages",
-          page: "Cited page",
-          missing: "Page not entered",
-          hint: "Keep track of the papers used in the outline or draft and the checked pages."
+          title: "Evidence Used by AI",
+          location: "Location",
+          detail: "Used content",
+          hint: "Shows the papers and PDF material the AI used for the outline or draft, plus where that evidence came from."
         };
 
   return (
@@ -568,9 +569,12 @@ function ReferencePageSummary({ entries, uiLanguage }: { entries: ReferencePageS
           <li key={entry.id}>
             <strong>{entry.title}</strong>
             <span>
-              {text.page}: {entry.pageNumber || text.missing}
+              {text.location}: {entry.location}
             </span>
-            {entry.inTextCitation && <code>{entry.inTextCitation}</code>}
+            <p>
+              {text.detail}: {entry.detail}
+            </p>
+            {entry.citation && <code>{entry.citation}</code>}
           </li>
         ))}
       </ul>
@@ -985,13 +989,34 @@ export default function Home() {
     return matchedReferences.length > 0 ? matchedReferences : references.filter((reference) => selectedReferenceIds.includes(reference.id));
   }
 
-  function referencePageSummaryEntries(referenceIds = selectedReferenceIds): ReferencePageSummaryEntry[] {
+  function referenceEvidenceLocation(reference: ReferenceItem) {
+    const source = reference.sourceName || reference.sourceProvider;
+    return selectedOutputLanguage === "ja"
+      ? `${source} の要約・メタデータ（ページ番号は本文PDF未取得のため推測しません）`
+      : `${source} abstract/metadata (page number is not guessed because the full-text PDF was not retrieved)`;
+  }
+
+  function referenceEvidenceEntries(referenceIds = selectedReferenceIds): EvidenceUsageEntry[] {
     return selectedReferenceItems(referenceIds).map((reference) => ({
       id: reference.id,
       title: reference.title,
-      pageNumber: cleanPageNumber(referencePages[reference.id] ?? ""),
-      inTextCitation: inTextCitationText(reference, referencePages[reference.id], citationStyle)
+      location: referenceEvidenceLocation(reference),
+      detail: reference.whyUseful || reference.abstractOrMetadataSummary,
+      citation: citationText(reference, citationStyle)
     }));
+  }
+
+  function pdfEvidenceEntries(): EvidenceUsageEntry[] {
+    return selectedPdfThemes().map((theme) => ({
+      id: theme.id,
+      title: theme.title,
+      location: selectedOutputLanguage === "ja" ? "アップロードPDFから抽出した該当箇所" : "Relevant passage extracted from uploaded PDF",
+      detail: theme.evidence || theme.summary
+    }));
+  }
+
+  function evidenceUsageEntries(referenceIds = selectedReferenceIds): EvidenceUsageEntry[] {
+    return [...referenceEvidenceEntries(referenceIds), ...pdfEvidenceEntries()];
   }
 
   function selectedReferenceBibliography() {
@@ -2360,21 +2385,7 @@ export default function Home() {
                   <p>{renderMathText(reference.abstractOrMetadataSummary)}</p>
                   <h4>{text.usePoint}</h4>
                   <p className="whyUseful">{renderMathText(reference.whyUseful)}</p>
-                  {selectedReferenceIds.includes(reference.id) && (
-                    <label className="citationPageField">
-                      <span>{text.citationPage}</span>
-                      <small>{text.citationPageHelp}</small>
-                      <input
-                        value={referencePages[reference.id] ?? ""}
-                        onChange={(event) => {
-                          setReferencePages((current) => ({ ...current, [reference.id]: event.target.value }));
-                          setReportDraft(null);
-                          clearRevisionFlow();
-                        }}
-                      />
-                    </label>
-                  )}
-                  {inTextCitationTemplate(reference, citationStyle) && (
+                  {citationStyle !== "chicago" && inTextCitationTemplate(reference, citationStyle) && (
                     <>
                       <h4>{text.inTextCitation}</h4>
                       <p className="whyUseful">{inTextCitationText(reference, referencePages[reference.id], citationStyle) || text.citationPageMissing}</p>
@@ -2508,7 +2519,7 @@ export default function Home() {
                     <p key={step}>{step}</p>
                   ))}
                 </div>
-                <ReferencePageSummary entries={referencePageSummaryEntries(reportOutline.selectedPaperIds)} uiLanguage={selectedOutputLanguage} />
+                <EvidenceUsageSummary entries={evidenceUsageEntries(reportOutline.selectedPaperIds)} uiLanguage={selectedOutputLanguage} />
               </article>
             )}
             <div className="draftBox">
@@ -2580,7 +2591,7 @@ export default function Home() {
                     </button>
                   </div>
                   <pre>{renderMathText(reportDraft.draft)}</pre>
-                  <ReferencePageSummary entries={referencePageSummaryEntries()} uiLanguage={selectedOutputLanguage} />
+                  <EvidenceUsageSummary entries={evidenceUsageEntries()} uiLanguage={selectedOutputLanguage} />
                   <div className="notice">
                     {reportDraft.notes.map((note) => (
                       <p key={note}>{note}</p>

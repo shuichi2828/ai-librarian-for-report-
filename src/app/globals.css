@@ -1477,24 +1477,6 @@ textarea {
   padding-left: 12px;
 }
 
-.citationPageField {
-  display: grid;
-  gap: 6px;
-  margin: 14px 0 4px;
-}
-
-.citationPageField span {
-  font-weight: 800;
-}
-
-.citationPageField small {
-  color: var(--muted);
-}
-
-.citationPageField input {
-  max-width: 260px;
-}
-
 .citationRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
